@@ -1,0 +1,96 @@
+:root {
+  --deep-space: #382828;
+  --cosmic-purple: #1a0a2e;
+  --galaxy-edge: #401f64;
+  --neon-violet: #7e57c2;
+  --plasma-pink: #bd2424;
+  --stardust: #ffffff;
+  --nebula: rgba(126, 87, 194, 0.2);
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background-color: var(--deep-space);
+  color: var(--stardust);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: linear-gradient(135deg, var(--deep-space) 0%, var(--cosmic-purple) 100%);
+}
+
+.app-nav {
+  background-color: rgba(26, 10, 46, 0.9);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--galaxy-edge);
+  backdrop-filter: blur(5px);
+  display: flex;
+  gap: 15px;
+}
+
+.nav-link {
+  color: var(--stardust);
+  text-decoration: none;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  background-color: var(--nebula);
+  color: #d4c4f0;
+}
+
+.nav-link.active {
+  background-color: var(--neon-violet);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 60, 155, 0.4);
+}
+
+.app-content {
+  flex-grow: 1;
+  overflow: hidden;
+  color: #a69d9d;
+  text-align: center;
+  display: flex;
+  position: relative;
+}
+
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--stardust);
+  font-size: 1.1rem;
+  background-color: var(--galaxy-edge);
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Анимации */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.loading-indicator {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Календарь и профиль */
+.calendar-wrapper,
+.user-profile-page {
+  flex: 1;
+  background-color: rgba(33, 20, 66, 0.8);
+  overflow-y: auto;
+  padding: 20px;
+}
+

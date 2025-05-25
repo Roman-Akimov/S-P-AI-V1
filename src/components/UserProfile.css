@@ -1,0 +1,155 @@
+/* src/components/UserProfile.css */
+.user-profile-page {
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto; /* Добавляем скролл, если контент большой */
+}
+
+.profile-section {
+    background-color: #fff;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9ecef;
+}
+
+.profile-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    display: flex; /* Для кнопки редактирования */
+    justify-content: space-between; /* Кнопка справа */
+    align-items: center;
+}
+
+/* Кнопка редактирования в заголовке секции */
+.profile-section .edit-button {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    background-color: #e9ecef;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    border-radius: 4px;
+}
+.profile-section .edit-button:hover {
+    background-color: #dee2e6;
+}
+
+
+/* Задачи на сегодня */
+.todays-tasks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.todays-tasks-list li {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #eee;
+    font-size: 0.9rem;
+    gap: 10px;
+}
+.todays-tasks-list li:last-child {
+    border-bottom: none;
+}
+
+.todays-tasks-list li.completed .task-title {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.task-time {
+    flex-shrink: 0;
+    font-size: 0.8em;
+    color: #6c757d;
+    width: 110px; /* Фиксированная ширина для выравнивания */
+}
+
+.task-category {
+    flex-shrink: 0;
+    font-size: 0.75em;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-align: center;
+    min-width: 60px;
+}
+
+.task-title {
+    margin-left: 10px;
+    color: #212529;
+}
+
+/* Приоритеты */
+.todays-tasks-list li.priority-high::before { content: '🔴'; margin-right: 5px; }
+.todays-tasks-list li.priority-medium::before { content: '🟡'; margin-right: 5px; }
+.todays-tasks-list li.priority-low::before { content: '🟢'; margin-right: 5px; }
+
+
+/* Форма редактирования анкеты ИИ */
+.ai-config-form label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+.ai-config-form input[type="time"],
+.ai-config-form input[type="number"] {
+    margin-left: 10px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+.ai-config-form fieldset {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+}
+.ai-config-form legend {
+    font-weight: bold;
+    padding: 0 5px;
+}
+.ai-config-form fieldset label {
+    display: inline-block; /* Чекбоксы в строку */
+    margin-right: 15px;
+    font-weight: normal;
+}
+.ai-config-form fieldset input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.ai-config-form .form-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+.ai-config-form .form-actions button {
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid;
+}
+.ai-config-form .form-actions button:first-of-type { /* Сохранить */
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+.ai-config-form .form-actions button:last-of-type { /* Отмена */
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+/* Отображение анкеты ИИ */
+.ai-config-display p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    color: #333;
+}

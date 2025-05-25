@@ -1,0 +1,294 @@
+/* AiAssistant.css - Стили, адаптированные под Calendar.css */
+
+/* --- Основной контейнер вкладки AI Assistant --- */
+.ai-assistant-container {
+    flex-grow: 1;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* ГЛАВНЫЙ СКРОЛЛ ДЛЯ ВСЕЙ ВКЛАДКИ. ЭТО ХОРОШО. */
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Заголовок вкладки */
+.ai-assistant-container h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+/* Вступительный текст */
+.ai-assistant-container p {
+    font-size: 0.9rem;
+    color: #495057;
+    line-height: 1.5;
+    margin-bottom: 15px;
+}
+
+/* Секция ввода промпта */
+.ai-prompt-section {
+    margin-bottom: 25px;
+}
+
+/* Текстовое поле для промпта */
+.ai-prompt-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Опции под текстовым полем (чекбокс, кнопка) */
+.ai-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Стилизация label для чекбокса */
+.ai-options label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #495057;
+    gap: 8px;
+}
+.ai-options label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #0d6efd;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/* Кнопка "Отправить AI" */
+.ai-options button {
+    padding: 8px 16px;
+    background-color: #0d6efd;
+    color: white;
+    border: 1px solid #0d6efd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.ai-options button:hover:not(:disabled) {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+.ai-options button:disabled {
+    background-color: #adb5bd;
+    border-color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Сообщения об ошибках */
+.ai-error-message {
+    background-color: #f8d7da;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+
+/* Индикатор загрузки */
+.ai-loading-indicator {
+    margin-top: 15px;
+    padding: 10px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* Блок с "сырым" текстовым ответом AI */
+.ai-raw-response {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px dashed #ced4da;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+.ai-raw-response h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+.ai-raw-response pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.85em;
+    color: #495057;
+    margin: 0;
+    max-height: 150px; /* Оставляем для сырого ответа, чтобы он не был слишком длинным */
+    overflow-y: auto;
+    background-color: #fff;
+    padding: 8px;
+    border: 1px solid #e9ecef;
+    border-radius: 3px;
+}
+
+/* Секция с предложенными задачами */
+.ai-response-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+    /* flex-grow: 1; */ /* <--- ЗАКОММЕНТИРУЕМ ЭТО. Пусть высота определяется контентом */
+    /* Если .ai-assistant-container имеет overflow-y: auto, то эта секция будет */
+    /* просто увеличивать общую высоту контента, вызывая скролл у родителя. */
+    display: flex;
+    flex-direction: column;
+    /* min-height: 0; */ /* Это было полезно С flex-grow, без него может не понадобиться */
+    /* но можно оставить, вреда не принесет */
+}
+.ai-response-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Список предложенных задач */
+.suggested-tasks-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    /* overflow-y: auto; */ /* <--- ЗАКОММЕНТИРУЕМ ИЛИ УДАЛИМ. Скролл будет у .ai-assistant-container */
+    /* Если вы ХОТИТЕ отдельный скролл для этого списка, если он ОЧЕНЬ длинный, */
+    /* тогда раскомментируйте это и добавьте max-height, например: */
+    /* max-height: 40vh; (40% высоты видимой области) */
+    /* overflow-y: auto; */
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: #fff;
+    /* flex-shrink: 0; */ /* <--- ИЗМЕНЕНИЕ: По умолчанию flex-shrink: 1. Установка в 0 */
+    /* предотвратит сжатие списка, если родитель .ai-response-section */
+    /* будет пытаться его сжать (маловероятно без flex-grow у родителя, но для надежности) */
+    /* Однако, если .ai-response-section не flex-контейнер (а он им является), */
+    /* то это свойство не будет иметь эффекта на сам список. */
+    /* КЛЮЧЕВОЕ - убрать max-height и ненужный overflow-y здесь, если скролл у родителя */
+}
+.suggested-tasks-list li {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 0.9rem;
+    color: #333;
+}
+.suggested-tasks-list li:last-child {
+    border-bottom: none;
+}
+
+/* Label внутри элемента списка задач */
+.suggested-tasks-list li label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    flex-wrap: wrap;
+}
+.suggested-tasks-list li input[type="checkbox"] {
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    accent-color: #0d6efd;
+    flex-shrink: 0;
+}
+
+/* Стили для деталей задачи в списке */
+.suggested-tasks-list strong {
+    color: #212529;
+    font-weight: 600;
+    margin-right: 5px;
+    /* flex-basis: 100%; */ /* Можно убрать, если не нужно, чтобы заголовок всегда был на новой строке */
+    /* order: -1; */ /* Если хотим чекбокс первым, а потом текст */
+    /* margin-left: 26px; */ /* Убираем, если flex-basis: 100% убран, используем gap */
+    margin-bottom: 3px;
+}
+
+/* Метка категории */
+.task-category-ai {
+    font-size: 0.8em;
+    padding: 2px 6px;
+    color: white;
+    border-radius: 3px;
+    margin-right: 6px;
+    flex-shrink: 0;
+    display: inline-block;
+    line-height: 1.4;
+}
+.task-category-ai.guess {
+    background-color: #ffc107 !important;
+    color: #333;
+}
+
+/* Время, место, описание */
+.task-time-ai,
+.task-location-ai,
+.task-desc-ai {
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-right: 8px;
+    line-height: 1.4;
+}
+.task-location-ai::before { /* Убрал content: "@ ", чтобы не дублировалось, если AI уже добавил @ */
+    /* content: "@ "; */
+}
+.task-desc-ai {
+    /* display: block; */ /* Можно убрать, чтобы описание было в потоке, если короткое */
+    /* width: 100%; */   /* Убираем, если display: block убран */
+    /* margin-left: 26px; */ /* Убираем, если display: block убран */
+    font-style: italic;
+    margin-top: 2px;
+    flex-basis: 100%; /* Заставим описание занимать новую строку, если оно есть */
+    margin-left: 26px; /* Отступ, если описание на новой строке */
+}
+
+/* Кнопка "Добавить выбранные" */
+.add-selected-button {
+    padding: 8px 16px;
+    background-color: #198754;
+    color: white;
+    border: 1px solid #198754;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    /* margin-top: auto; */ /* Это прижмет кнопку к низу, ЕСЛИ .ai-response-section имеет flex-grow: 1 и высоту. */
+    /* Если .ai-response-section растет по контенту, то auto может не дать нужного эффекта. */
+    /* Оставляем пока так, но если кнопка "улетает", можно убрать. */
+    align-self: flex-start;
+    margin-top: 10px; /* Добавим небольшой отступ сверху, если margin-top: auto не работает как надо */
+}
+.add-selected-button:hover:not(:disabled) {
+    background-color: #157347;
+    border-color: #146c43;
+}
+.add-selected-button:disabled {
+    background-color: #adb5bd;
+    border-color: #adb5bd;
+    cursor: not-allowed;
+    opacity: 0.7;
+}

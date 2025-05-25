@@ -1,0 +1,470 @@
+/* Calendar.css - ПОЛНАЯ ВЕРСИЯ ДЛЯ КОПИРОВАНИЯ (Вариант 1: с height: 100vh) */
+
+/* --- Глобальные и базовые стили --- */
+html, body, #root /* Убедись, что #root - твой корневой элемент React */ {
+    height: 100%; /* <-- ВАЖНО */
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Предотвращаем прокрутку всей страницы */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.calendar-wrapper {
+    display: flex;
+    overflow: hidden; /* Предотвращаем прокрутку wrapper */
+}
+
+.calendar-container {
+    display: flex;
+    flex-grow: 1; /* Занимает всю ширину */
+    height: 100%; /* Занимает 100% высоты wrapper */
+    overflow: hidden; /* Предотвращаем внутреннюю прокрутку */
+}
+
+/* --- Стили Сайдбара --- */
+.side-bar {
+    width: 260px;
+    flex-shrink: 0; /* Не сжиматься по ширине */
+    height: 100%; /* Занимает 100% высоты calendar-container */
+    background-color: #fcfcfc;
+    border-right: 1px solid #dee2e6;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    border-radius: 20px;
+    flex-direction: column;
+    overflow-y: auto; /* Включаем прокрутку только для сайдбара, если контент не влезает */
+}
+
+.sidebar-section {
+    margin-bottom: 25px;
+}
+
+.sidebar-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 8px;
+}
+
+.sidebar-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+}
+
+.calendar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.calendar-list li {
+    margin-bottom: 10px;
+}
+
+.calendar-list label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.calendar-list input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    accent-color: #0d6efd;
+}
+
+.calendar-color-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.search-results {
+    margin-top: 15px;
+}
+.search-results h4 {
+    font-size: 0.9rem;
+    color: #1579d2;
+    margin-bottom: 10px;
+}
+.search-result-item {
+    background-color: #f8f9fa;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 0.85rem;
+    border: 1px solid #e9ecef;
+}
+.search-result-item strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #212529;
+}
+.search-result-item small {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+
+/* --- Стили Основного Контента Календаря --- */
+.calendar-content {
+    flex-grow: 1; /* Занимает оставшуюся ширину */
+    height: 100%; /* Занимает 100% высоты calendar-container */
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative; /* Для возможного позиционирования дочерних */
+    display: flex; /* Включаем Flexbox */
+    flex-direction: column; /* Элементы (тулбар, календарь) располагаются друг под другом */
+    overflow: hidden; /* Предотвращаем выход контента за пределы */
+}
+
+/* Тулбар над календарем */
+.calendar-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px; /* Отступ снизу до календаря */
+    flex-shrink: 0; /* Не сжиматься по высоте */
+    /* Можно задать явную высоту, если нужно для calc() ниже */
+    /* height: 40px; */
+}
+
+.calendar-toolbar button {
+    padding: 6px 12px;
+    background-color: #6c757d;
+    color: white;
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease;
+}
+
+.calendar-toolbar button:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.toggle-sidebar-button {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    margin-right: auto; /* Отодвигаем остальные кнопки вправо */
+}
+.toggle-sidebar-button:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* --- Контейнер для TUI Calendar --- */
+.tui-calendar-container {
+    flex-grow: 1; /* Растягивается, чтобы занять оставшееся место по высоте */
+    min-height: 0; /* Позволяет контейнеру сжиматься, если родительский flex-контейнер не может предоставить достаточно места */
+    position: relative; /* Контекст для позиционирования элементов TUI */
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden; /* Скрываем всё, что может выйти за границы (важно для TUI) */
+}
+
+/* === Стилизация элементов TUI Calendar (ПОВЫШЕНА СПЕЦИФИЧНОСТЬ) === */
+
+/* Убеждаемся, что сам layout календаря внутри контейнера растягивается */
+.tui-calendar-container .tui-calendar-layout {
+    height: 100%; /* Занимает всю высоту родительского .tui-calendar-container */
+    border: none; /* Убираем возможную внутреннюю рамку TUI */
+    display: flex; /* Включаем Flex для лучшего управления внутренними блоками */
+    flex-direction: column; /* Основные блоки TUI (header, body) идут друг под другом */
+}
+
+/* Заставляем тело календаря растягиваться */
+.tui-calendar-container .tui-calendar-body {
+    flex-grow: 1; /* Занимает оставшееся место после хедера */
+    min-height: 0; /* Позволяет сжиматься */
+}
+
+
+/* Шрифты для TUI (Наследуем от body) */
+.tui-calendar-container .tui-calendar-layout,
+.tui-calendar-container .tui-calendar-layout * {
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+
+/* Заголовки дней недели */
+.tui-calendar-container .tui-calendar-weekday-grid-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0; /* Не сжимать хедер по высоте */
+}
+.tui-calendar-container .tui-calendar-dayname {
+    color: #495057 !important;
+    font-weight: 500;
+    font-size: 0.85rem;
+    line-height: 30px; /* Примерная высота заголовка */
+    text-align: center; /* Выровняем по центру */
+}
+
+/* Сетка времени */
+.tui-calendar-container .tui-calendar-timegrid-left {
+    flex-shrink: 0; /* Не сжимать левую колонку */
+}
+.tui-calendar-container .tui-calendar-timegrid-hourlabel {
+    color: #6c757d !important;
+    font-size: 0.75rem;
+    text-align: center;
+}
+/* Линии сетки */
+.tui-calendar-container .tui-calendar-timegrid-horizontal-line > div,
+.tui-calendar-container .tui-calendar-weekday-grid > div {
+    border-color: #e9ecef;
+}
+
+
+/* Подсветка текущего дня */
+.tui-calendar-container .tui-calendar-today .tui-calendar-weekday-grid-date {
+    font-weight: bold;
+    color: #0d6efd;
+}
+/* Фон текущего дня (если нужно) */
+.tui-calendar-container .tui-calendar-daygrid-cell.tui-calendar-today,
+.tui-calendar-container .tui-calendar-timegrid-column.tui-calendar-today {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+
+/* События (расписания) */
+.tui-calendar-container .tui-calendar-schedule {
+    border-radius: 3px;
+    font-size: 0.8rem;
+    padding: 2px 5px;
+    margin-bottom: 1px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* Переопределение цветов и границ с использованием CSS переменных, которые TUI должен подставлять */
+    border: none !important;
+    border-left: 3px solid #dee2e6;
+    background-color: #f1f3f5;
+    color: #212529; /* Задаем цвет текста по умолчанию */
+}
+/* Убираем стандартный кружок TUI */
+.tui-calendar-container .tui-calendar-schedule .tui-calendar-schedule-title::before {
+    display: none;
+}
+/* Стиль для текста внутри события */
+.tui-calendar-container .tui-calendar-schedule-content,
+.tui-calendar-container .tui-calendar-schedule-title {
+    color: inherit !important; /* Наследуем цвет от .tui-calendar-schedule */
+}
+
+
+/* --- Стили Модального Окна (без изменений) --- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 25px 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.25rem;
+    color: #333;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+}
+.modal-content label input[type="text"],
+.modal-content label input[type="date"],
+.modal-content label input[type="datetime-local"],
+.modal-content label select,
+.modal-content label textarea {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 5px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+}
+.modal-content label textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.modal-checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: normal;
+}
+.modal-checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin-top: 0;
+    margin-right: 8px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.modal-actions button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.modal-actions button[type="button"]:nth-of-type(1) {
+    background-color: #198754;
+    color: white;
+    border-color: #198754;
+}
+.modal-actions button[type="button"]:nth-of-type(1):hover {
+    background-color: #157347;
+    border-color: #146c43;
+}
+
+.modal-actions .delete-button {
+    background-color: #f30000;
+    color: white;
+    border-color: #dc3545;
+}
+.modal-actions .delete-button:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
+.modal-actions button:last-of-type {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+.modal-actions button:last-of-type:hover {
+    background-color: #5c636a;
+    border-color: #565e64;
+}
+
+.subtasks-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.subtasks-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.subtask-item input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 16px; /* Или другой размер */
+    height: 16px;
+    margin-top: 0; /* Убрать верхний отступ по умолчанию */
+}
+
+.subtask-item input[type="text"] {
+    flex-grow: 1;
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-top: 0; /* Убрать верхний отступ по умолчанию */
+}
+
+.remove-subtask-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #dc3545; /* Красный */
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+.remove-subtask-btn:hover {
+    opacity: 1;
+}
+
+.add-subtask-btn {
+    margin-top: 10px;
+    background: none;
+    border: 1px dashed #6c757d;
+    color: #6c757d;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.add-subtask-btn:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}

@@ -1,0 +1,88 @@
+.main-container {
+    display: flex;
+    height: 100vh;
+    background-color: #121212; /* Черный фон для всей страницы */
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #1d1d1d; /* Тёмно-серый фон для левой панели */
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin: 20px 0;
+}
+
+.sidebar a {
+    text-decoration: none;
+    color: #9c27b0; /* Фиолетовый цвет для текста ссылок */
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.sidebar a:hover {
+    color: #7b1fa2; /* Темный фиолетовый при наведении */
+}
+
+.content {
+    flex-grow: 1;
+    padding: 20px;
+    color: #e0e0e0; /* Светлый текст на темном фоне */
+}
+
+.calendar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Стиль для календаря */
+.react-calendar {
+    background-color: #1c1c1c; /* Тёмный фон календаря */
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5); /* Тень для календаря */
+}
+
+.react-calendar__tile {
+    border-radius: 5px;
+    background-color: #333; /* Темный фон для ячеек календаря */
+    color: #e0e0e0; /* Светлый текст */
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.react-calendar__tile:hover {
+    background-color: #7b1fa2; /* Фиолетовый при наведении на ячейку */
+    color: white; /* Белый текст при наведении */
+}
+
+.react-calendar__tile--active {
+    background-color: #220028; /* Активная дата с фиолетовым фоном */
+    color: white; /* Белый текст на активной дате */
+}
+
+/* Выделение выходных */
+.react-calendar__tile--weekend {
+    background-color: #424242; /* Темно-серый фон для выходных */
+}
+
+/* Стиль для стрелок перехода по месяцам */
+.react-calendar__navigation button {
+    background-color: transparent;
+    color: #320738; /* Фиолетовый цвет стрелок */
+    font-size: 20px;
+    border: none;
+    padding: 10px;
+    transition: color 0.3s;
+}
+
+.react-calendar__navigation button:hover {
+    color: #621515; /* Темный фиолетовый при наведении */
+}
