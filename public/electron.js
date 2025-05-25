@@ -1,8 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-// fs и fs-extra больше не нужны здесь, т.к. preload работает с ними напрямую
-
-// Получаем путь один раз для передачи в preload
 const userDataPath = app.getPath('userData');
 
 let win;
