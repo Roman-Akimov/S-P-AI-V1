@@ -1,117 +1,73 @@
+// UserProfile.js
 import React, { useState, useEffect, useMemo } from 'react';
-import './UserProfile.css'; // Стили для профиля
+import './UserProfile.css';
 
-// --- Константы ---
-const PROFILE_CONFIG_FILENAME = 'profileConfig.json';
+// INITIAL_AI_CONFIG здесь больше не нужен, так как App.js предоставляет полный и актуальный конфиг
 
-// --- API Файловой системы ---
-const fileSystemApi = window.electronFs;
-if (!fileSystemApi) {
-    console.error("UserProfile: Electron FS API not available.");
-}
-
-// --- Начальная структура анкеты ИИ ---
-const INITIAL_AI_CONFIG = {
-    workStartTime: '09:00',
-    workEndTime: '18:00',
-    preferredWorkDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-    taskChunkingMinutes: 90,
-    breakMinutes: 15,
-    energyLevelByDayTime: { morning: 4, afternoon: 3, evening: 2, night: 1, },
-    priorityWeights: { High: 3, Medium: 2, Low: 1, deadlineProximityDays: 3, },
-};
-
-const UserProfile = ({ schedules, categories }) => {
-    // --- Состояние для данных профиля ---
-    const [basicInfo, setBasicInfo] = useState({ name: 'Пользователь', email: 'user@example.com' }); // Заглушка
-    const [aiConfig, setAiConfig] = useState(INITIAL_AI_CONFIG);
-    const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+const UserProfile = ({ schedules, categories, currentAiConfig, onAiConfigChange, userCredentials }) => {
     const [isEditingConfig, setIsEditingConfig] = useState(false);
+    // tempAiConfig используется для временного хранения изменений во время редактирования формы
+    const [tempAiConfig, setTempAiConfig] = useState(currentAiConfig);
 
-    // --- Загрузка конфига ИИ ---
+    // Синхронизация tempAiConfig, если currentAiConfig (из App.js) изменился,
+    // или при инициализации компонента.
     useEffect(() => {
-        const loadConfig = async () => {
-            if (!fileSystemApi) { setIsLoadingConfig(false); return; }
-            setIsLoadingConfig(true);
-            console.log('UserProfile: Loading AI config...');
-            try {
-                await fileSystemApi.ensureDataDir();
-                const loadedConfig = await fileSystemApi.readFile(PROFILE_CONFIG_FILENAME);
-                if (loadedConfig) {
-                    setAiConfig(prev => ({ ...INITIAL_AI_CONFIG, ...loadedConfig })); // Мержим с дефолтным
-                    console.log('UserProfile: AI config loaded.');
-                } else {
-                    setAiConfig(INITIAL_AI_CONFIG);
-                    console.log('UserProfile: No saved AI config, using initial.');
-                }
-            } catch (error) {
-                console.error('UserProfile: Failed to load AI config:', error);
-                setAiConfig(INITIAL_AI_CONFIG);
-            } finally {
-                setIsLoadingConfig(false);
-            }
-        };
-        loadConfig();
-    }, []); // Загрузка один раз при монтировании
-
-    // --- Сохранение конфига ИИ ---
-    const saveAiConfig = async (configToSave) => {
-        if (!fileSystemApi) {
-            console.error("UserProfile: Cannot save AI config, FS API not available.");
-            // Можно показать уведомление пользователю
-            return;
+        if (!isEditingConfig) { // Обновляем temp только если не в режиме редактирования
+            setTempAiConfig(currentAiConfig);
         }
-        console.log('UserProfile: Saving AI config...');
-        try {
-            await fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, configToSave);
-            console.log('UserProfile: AI config saved.');
-        } catch (error) {
-            console.error('UserProfile: Failed to save AI config:', error);
-            // Можно показать ошибку пользователю
-        }
-    };
+    }, [currentAiConfig, isEditingConfig]);
 
-    // --- Обработчики изменений анкеты ---
     const handleAiConfigChange = (event) => {
         const { name, value, type, checked } = event.target;
-
-        setAiConfig(prev => {
+        setTempAiConfig(prev => {
             const keys = name.split('.');
-            let newState = { ...prev }; // Клонируем предыдущее состояние
+            let newState = { ...prev };
 
-            if (keys.length === 1) { // Простое поле
-                if (name === 'preferredWorkDays') { // Особая обработка для дней недели
+            if (keys.length === 1) {
+                if (name === 'preferredWorkDays') {
                     const day = value;
                     const currentDays = prev.preferredWorkDays || [];
                     const newDays = checked
-                        ? [...currentDays, day].sort() // Добавляем
-                        : currentDays.filter(d => d !== day); // Удаляем
+                        ? [...new Set([...currentDays, day])].sort()
+                        : currentDays.filter(d => d !== day);
                     newState.preferredWorkDays = newDays;
                 } else if (type === 'number') {
-                    newState[name] = parseInt(value, 10) || 0;
+                    newState[name] = parseInt(value, 10) || (name === "concentrationLevel" ? 1 : 0);
+                } else if (type === 'checkbox' && name !== 'preferredWorkDays') {
+                    newState[name] = checked;
                 } else {
                     newState[name] = value;
                 }
-            } else if (keys.length === 2) { // Вложенное поле (energyLevelByDayTime, priorityWeights)
+            } else if (keys.length === 2) {
                 const [group, key] = keys;
-                // Клонируем вложенный объект перед изменением
                 newState[group] = {
                     ...(prev[group] || {}),
-                    [key]: parseInt(value, 10) || 0 // Предполагаем числа
+                    [key]: parseInt(value, 10) || 0 // Используем parseInt для числовых полей в объектах
                 };
             }
-            return newState; // Возвращаем новый объект состояния
+            return newState;
         });
     };
 
-    const handleSaveChanges = () => {
-        saveAiConfig(aiConfig); // Вызываем сохранение актуального состояния
-        setIsEditingConfig(false); // Выходим из режима редактирования
+    const handleEditConfig = () => {
+        setTempAiConfig({ ...currentAiConfig }); // Загружаем актуальный конфиг в temp для редактирования
+        setIsEditingConfig(true);
     };
 
-    // --- Фильтрация задач на сегодня (ИСПРАВЛЕНО: использует пропсы) ---
+    const handleCancelEdit = () => {
+        setTempAiConfig({ ...currentAiConfig }); // Сбрасываем изменения в temp к актуальным
+        setIsEditingConfig(false);
+    };
+
+    const handleSaveChanges = () => {
+        onAiConfigChange(tempAiConfig); // Передаем изменения в App.js
+        setIsEditingConfig(false);
+        alert("Настройки AI-ассистента отправлены на сохранение."); // App.js обработает фактическое сохранение
+    };
+
+    // --- Фильтрация задач на сегодня (как было) ---
     const todaysSchedules = useMemo(() => {
-        // Используем 'schedules' из пропсов
+        // ... (код без изменений)
         if (!Array.isArray(schedules)) {
             console.warn("UserProfile: schedules prop is not an array in useMemo");
             return [];
@@ -119,69 +75,59 @@ const UserProfile = ({ schedules, categories }) => {
         const today = new Date();
         const todayDateString = today.toISOString().split('T')[0];
 
-        console.log("UserProfile: Recalculating today's schedules. Total schedules:", schedules.length);
-
         return schedules
             .filter(task => {
                 if (!task.start) return false;
                 try {
                     const taskStartDate = new Date(task.start);
-                    if (isNaN(taskStartDate.getTime())) return false; // Пропускаем невалидные даты
-
-                    // Для allday задач сравниваем только дату
+                    if (isNaN(taskStartDate.getTime())) return false;
                     if (task.isAllDay) {
                         return taskStartDate.toISOString().split('T')[0] === todayDateString;
                     }
-                    // Для задач со временем - проверяем пересечение с сегодняшним днем
                     const taskEndDate = task.end ? new Date(task.end) : taskStartDate;
-                    if (isNaN(taskEndDate.getTime())) return false; // Пропускаем невалидные даты конца
-
+                    if (isNaN(taskEndDate.getTime())) return false;
                     const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
                     const todayEnd = new Date(today); todayEnd.setHours(23, 59, 59, 999);
-
-                    // Пересечение интервалов: (StartA <= EndB) and (EndA >= StartB)
                     return taskStartDate <= todayEnd && taskEndDate >= todayStart;
                 } catch (e) {
                     console.error("Error filtering today's schedule:", task, e);
                     return false;
                 }
             })
-            .sort((a, b) => { // Сортируем по времени начала
+            .sort((a, b) => {
                 try {
                     const dateA = new Date(a.start).getTime();
                     const dateB = new Date(b.start).getTime();
                     if (isNaN(dateA) && isNaN(dateB)) return 0;
-                    if (isNaN(dateA)) return 1; // Невалидные даты в конец
+                    if (isNaN(dateA)) return 1;
                     if (isNaN(dateB)) return -1;
                     return dateA - dateB;
                 } catch { return 0;}
             });
-        // ---> ЗАВИСИМОСТЬ ОТ ПРОПСА 'schedules' <---
     }, [schedules]);
 
-    // --- Рендер ---
-    if (isLoadingConfig) {
-        return <div className="loading-indicator">Загрузка профиля...</div>;
-    }
+
+    // Для отображения используется currentAiConfig (из App.js)
+    // Для формы редактирования используется tempAiConfig
+    const configToUseInForm = isEditingConfig ? tempAiConfig : currentAiConfig;
 
     return (
         <div className="user-profile-page">
             <h2>Профиль пользователя</h2>
 
-            {/* Основная информация (заглушка) */}
             <div className="profile-section">
                 <h3>Основная информация</h3>
-                <p>Имя: {basicInfo.name}</p>
-                <p>Email: {basicInfo.email}</p>
+                <p>Имя: {userCredentials?.name || 'Пользователь не указан'}</p>
+                <p>Email: {userCredentials?.email || 'Email не указан'}</p>
             </div>
 
-            {/* Задачи на сегодня */}
             <div className="profile-section">
                 <h3>Задачи на сегодня ({todaysSchedules.length})</h3>
+                {/* ... (код списка задач без изменений) ... */}
                 {todaysSchedules.length > 0 ? (
                     <ul className="todays-tasks-list">
                         {todaysSchedules.map(task => {
-                            const category = Array.isArray(categories) ? categories.find(c => c.id === task.categoryId) : null; // Проверка categories
+                            const category = Array.isArray(categories) ? categories.find(c => c.id === task.categoryId) : null;
                             let timeString = '';
                             try {
                                 if (task.isAllDay) { timeString = 'Весь день'; }
@@ -195,9 +141,8 @@ const UserProfile = ({ schedules, categories }) => {
                             return (
                                 <li key={task.id} className={`priority-${task.priority?.toLowerCase()} ${task.completed ? 'completed' : ''}`}>
                                     <span className="task-time">{timeString}</span>
-                                    <span className="task-category" style={{ backgroundColor: category?.color || '#ccc' }}>
-                                        {category?.name || 'Без кат.'}
-                                    </span>
+                                    {category && <span className="task-category" style={{ backgroundColor: category.color }}>{category.name}</span>}
+                                    {!category && <span className="task-category" style={{ backgroundColor: '#ccc', color: '#000' }}>Без кат.</span>}
                                     <span className="task-title">{task.title}</span>
                                 </li>
                             );
@@ -208,110 +153,126 @@ const UserProfile = ({ schedules, categories }) => {
                 )}
             </div>
 
-            {/* Анкета для ИИ */}
             <div className="profile-section">
                 <h3>
-                    Настройки AI-ассистента
+                    Анкета и настройки AI-ассистента
                     {!isEditingConfig && (
-                        <button onClick={() => setIsEditingConfig(true)} className="edit-button">
+                        <button onClick={handleEditConfig} className="edit-button">
                             Редактировать
                         </button>
                     )}
                 </h3>
                 {isEditingConfig ? (
-                    /* Форма редактирования */
-                    <div className="ai-config-form">
-                        <label>Начало рабочего дня:
-                            <input
-                                type="time"
-                                name="workStartTime"
-                                value={aiConfig.workStartTime || ''}
-                                onChange={handleAiConfigChange}
-                            />
+                    <form className="ai-config-form" onSubmit={(e) => { e.preventDefault(); handleSaveChanges(); }}>
+                        {/* Поля формы используют tempAiConfig и handleAiConfigChange */}
+                        <label>Кем вы работаете (ученик/студент/профессия):
+                            <input type="text" name="occupation" value={tempAiConfig.occupation || ''} onChange={handleAiConfigChange} />
                         </label>
-                        <label>Конец рабочего дня:
-                            <input
-                                type="time"
-                                name="workEndTime"
-                                value={aiConfig.workEndTime || ''}
-                                onChange={handleAiConfigChange}
-                            />
+                        <label>График вашей работы (описательно, если отличается от настроек ниже):
+                            <input type="text" name="workScheduleText" value={tempAiConfig.workScheduleText || ''} onChange={handleAiConfigChange} />
                         </label>
-
+                        <label>Начало стандартного рабочего дня:
+                            <input type="time" name="workStartTime" value={tempAiConfig.workStartTime || ''} onChange={handleAiConfigChange} />
+                        </label>
+                        <label>Конец стандартного рабочего дня:
+                            <input type="time" name="workEndTime" value={tempAiConfig.workEndTime || ''} onChange={handleAiConfigChange} />
+                        </label>
                         <fieldset>
-                            <legend>Предпочитаемые рабочие дни:</legend>
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                <label key={day} className="checkbox-label-inline">
-                                    <input
-                                        type="checkbox"
-                                        name="preferredWorkDays"
-                                        value={day}
-                                        checked={aiConfig.preferredWorkDays?.includes(day) || false}
-                                        onChange={handleAiConfigChange}
-                                    /> {day}
+                            <legend>Предпочитаемые рабочие дни (для стандартного графика):</legend>
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                                const dayTranslations = {Mon: "Пн", Tue: "Вт", Wed: "Ср", Thu: "Чт", Fri: "Пт", Sat: "Сб", Sun: "Вс"};
+                                return (
+                                    <label key={day} className="checkbox-label-inline">
+                                        <input type="checkbox" name="preferredWorkDays" value={day} checked={tempAiConfig.preferredWorkDays?.includes(day) || false} onChange={handleAiConfigChange} /> {dayTranslations[day]}
+                                    </label>
+                                );
+                            })}
+                        </fieldset>
+                        <label>Как далеко находится место вашей работы/учебы:
+                            <input type="text" name="commuteDistance" value={tempAiConfig.commuteDistance || ''} onChange={handleAiConfigChange} />
+                        </label>
+                        <label>На каком транспорте вы обычно передвигаетесь:
+                            <input type="text" name="transportMode" value={tempAiConfig.transportMode || ''} onChange={handleAiConfigChange} />
+                        </label>
+                        <label>Наилучшее время вашей продуктивности (описательно):
+                            <input type="text" name="peakProductivityTime" value={tempAiConfig.peakProductivityTime || ''} onChange={handleAiConfigChange} />
+                        </label>
+                        <fieldset>
+                            <legend>Уровень энергии (1-низкий, 5-высокий) по времени суток:</legend>
+                            <label>Утро (6-12): <input type="number" name="energyLevelByDayTime.morning" value={tempAiConfig.energyLevelByDayTime?.morning || '3'} onChange={handleAiConfigChange} min="1" max="5"/></label>
+                            <label>День (12-17): <input type="number" name="energyLevelByDayTime.afternoon" value={tempAiConfig.energyLevelByDayTime?.afternoon || '3'} onChange={handleAiConfigChange} min="1" max="5"/></label>
+                            <label>Вечер (17-22): <input type="number" name="energyLevelByDayTime.evening" value={tempAiConfig.energyLevelByDayTime?.evening || '2'} onChange={handleAiConfigChange} min="1" max="5"/></label>
+                            <label>Ночь (22-6): <input type="number" name="energyLevelByDayTime.night" value={tempAiConfig.energyLevelByDayTime?.night || '1'} onChange={handleAiConfigChange} min="1" max="5"/></label>
+                        </fieldset>
+                        <label>Предпочитаемый стиль работы:
+                            <select name="workStylePreference" value={tempAiConfig.workStylePreference || 'с перерывами'} onChange={handleAiConfigChange}>
+                                <option value="подряд">Делать дела подряд</option>
+                                <option value="с перерывами">Брать перерывы между делами</option>
+                            </select>
+                        </label>
+                        {tempAiConfig.workStylePreference === 'с перерывами' && (
+                            <>
+                                <label>Длительность рабочего блока (мин), если предпочитаете перерывы:
+                                    <input type="number" name="taskChunkingMinutes" value={tempAiConfig.taskChunkingMinutes || '90'} onChange={handleAiConfigChange} min="15" step="15" />
                                 </label>
-                            ))}
-                        </fieldset>
-
-                        <label>Длительность рабочего блока (мин):
-                            <input
-                                type="number"
-                                name="taskChunkingMinutes"
-                                value={aiConfig.taskChunkingMinutes || ''}
-                                onChange={handleAiConfigChange}
-                                min="15"
-                                step="15"
-                            />
+                                <label>Длительность перерыва (мин), если предпочитаете перерывы:
+                                    <input type="number" name="breakMinutes" value={tempAiConfig.breakMinutes || '15'} onChange={handleAiConfigChange} min="5" step="5" />
+                                </label>
+                            </>
+                        )}
+                        <label>Скорость чтения:
+                            <input type="text" name="readingSpeed" value={tempAiConfig.readingSpeed || ''} onChange={handleAiConfigChange} placeholder="напр. 'средняя', '250 слов/мин'"/>
                         </label>
-                        <label>Длительность перерыва (мин):
-                            <input
-                                type="number"
-                                name="breakMinutes"
-                                value={aiConfig.breakMinutes || ''}
-                                onChange={handleAiConfigChange}
-                                min="5"
-                                step="5"
-                            />
+                        <label>Скорость набора текста:
+                            <input type="text" name="typingSpeed" value={tempAiConfig.typingSpeed || ''} onChange={handleAiConfigChange} placeholder="напр. 'быстрая', '300 зн/мин'"/>
                         </label>
-
-                        <fieldset>
-                            <legend>Уровень энергии (1-5):</legend>
-                            <label>Утро (6-12):
-                                <input type="number" name="energyLevelByDayTime.morning" value={aiConfig.energyLevelByDayTime?.morning || ''} onChange={handleAiConfigChange} min="1" max="5"/>
-                            </label>
-                            <label>День (12-17):
-                                <input type="number" name="energyLevelByDayTime.afternoon" value={aiConfig.energyLevelByDayTime?.afternoon || ''} onChange={handleAiConfigChange} min="1" max="5"/>
-                            </label>
-                            <label>Вечер (17-22):
-                                <input type="number" name="energyLevelByDayTime.evening" value={aiConfig.energyLevelByDayTime?.evening || ''} onChange={handleAiConfigChange} min="1" max="5"/>
-                            </label>
-                            <label>Ночь (22-6):
-                                <input type="number" name="energyLevelByDayTime.night" value={aiConfig.energyLevelByDayTime?.night || ''} onChange={handleAiConfigChange} min="1" max="5"/>
-                            </label>
-                        </fieldset>
-
-                        {/* TODO: Добавить поля для priorityWeights и deadlineProximityDays */}
-
+                        <label>Уровень вашей усидчивости (от 1 до 10):
+                            <input type="number" name="concentrationLevel" value={tempAiConfig.concentrationLevel || '7'} onChange={handleAiConfigChange} min="1" max="10" />
+                        </label>
+                        <label>Ваш тип личности (если знаете, необязательно):
+                            <input type="text" name="personalityType" value={tempAiConfig.personalityType || ''} onChange={handleAiConfigChange} placeholder="напр. 'интроверт', 'ENTJ'"/>
+                        </label>
+                        <label>Ваше образование:
+                            <select name="educationBackground" value={tempAiConfig.educationBackground || ''} onChange={handleAiConfigChange}>
+                                <option value="">Не указано</option>
+                                <option value="Гуманитарное">Гуманитарное</option>
+                                <option value="Техническое">Техническое</option>
+                                <option value="Естественнонаучное">Естественнонаучное</option>
+                                <option value="Экономическое">Экономическое</option>
+                                <option value="Медицинское">Медицинское</option>
+                                <option value="Творческое">Творческое</option>
+                                <option value="Другое">Другое</option>
+                            </select>
+                        </label>
+                        <label>Личные предпочтения для AI (что обязательно учесть):
+                            <textarea name="personalPreferencesNotes" value={tempAiConfig.personalPreferencesNotes || ''} onChange={handleAiConfigChange} rows="4" placeholder="Например: 'обязательно оставлять время для встречи с друзьями по пятницам вечером', 'не планировать важные дела на раннее утро'"></textarea>
+                        </label>
                         <div className="form-actions">
-                            <button onClick={handleSaveChanges}>Сохранить</button>
-                            <button type="button" onClick={() => { setIsEditingConfig(false); /* TODO: Перезагрузить конфиг для отмены */ }}>Отмена</button>
+                            <button type="submit">Сохранить анкету</button>
+                            <button type="button" onClick={handleCancelEdit}>Отмена</button>
                         </div>
-
-                    </div>
+                    </form>
                 ) : (
-                    /* Отображение текущих настроек */
+                    /* Отображение текущих настроек из currentAiConfig */
                     <div className="ai-config-display">
-                        <p>Время работы: {aiConfig.workStartTime || 'Не уст.'} - {aiConfig.workEndTime || 'Не уст.'}</p>
-                        <p>Рабочие дни: {aiConfig.preferredWorkDays?.join(', ') || 'Не указаны'}</p>
-                        <p>Блок работы / перерыв: {aiConfig.taskChunkingMinutes || '?'} мин / {aiConfig.breakMinutes || '?'} мин</p>
-                        <p>
-                            Энергия (У/Д/В/Н):
-                            {aiConfig.energyLevelByDayTime?.morning ?? '?'}/
-                            {aiConfig.energyLevelByDayTime?.afternoon ?? '?'}/
-                            {aiConfig.energyLevelByDayTime?.evening ?? '?'}/
-                            {aiConfig.energyLevelByDayTime?.night ?? '?'}
-                        </p>
-                        {/* Отобразить другие параметры */}
+                        <p><strong>Профессия/статус:</strong> {currentAiConfig.occupation || 'Не указано'}</p>
+                        <p><strong>График работы (описательно):</strong> {currentAiConfig.workScheduleText || 'Не указано'}</p>
+                        <p><strong>Стандартное время работы:</strong> {currentAiConfig.workStartTime || 'N/A'} - {currentAiConfig.workEndTime || 'N/A'} ({currentAiConfig.preferredWorkDays?.join(', ') || 'дни не указаны'})</p>
+                        <p><strong>Дорога до работы/учебы:</strong> {currentAiConfig.commuteDistance || 'Не указано'}</p>
+                        <p><strong>Основной транспорт:</strong> {currentAiConfig.transportMode || 'Не указано'}</p>
+                        <p><strong>Пик продуктивности (описательно):</strong> {currentAiConfig.peakProductivityTime || 'Не указано'}</p>
+                        <p><strong>Уровни энергии (У/Д/В/Н):</strong> {currentAiConfig.energyLevelByDayTime?.morning ?? '?'}/{currentAiConfig.energyLevelByDayTime?.afternoon ?? '?'}/{currentAiConfig.energyLevelByDayTime?.evening ?? '?'}/{currentAiConfig.energyLevelByDayTime?.night ?? '?'}</p>
+                        <p><strong>Стиль работы:</strong> {currentAiConfig.workStylePreference === 'подряд' ? 'Предпочитаю делать дела подряд' : 'Предпочитаю брать перерывы'}</p>
+                        {currentAiConfig.workStylePreference === 'с перерывами' && (
+                            <p><strong>Рабочий блок / перерыв:</strong> {currentAiConfig.taskChunkingMinutes || '?'} мин / {currentAiConfig.breakMinutes || '?'} мин</p>
+                        )}
+                        <p><strong>Скорость чтения:</strong> {currentAiConfig.readingSpeed || 'Не указана'}</p>
+                        <p><strong>Скорость набора текста:</strong> {currentAiConfig.typingSpeed || 'Не указана'}</p>
+                        <p><strong>Усидчивость (1-10):</strong> {currentAiConfig.concentrationLevel || 'Не указан'}</p>
+                        <p><strong>Тип личности:</strong> {currentAiConfig.personalityType || 'Не указан'}</p>
+                        <p><strong>Образование:</strong> {currentAiConfig.educationBackground || 'Не указано'}</p>
+                        <p><strong>Особые пожелания для AI:</strong></p>
+                        <pre className="personal-notes-display">{currentAiConfig.personalPreferencesNotes || 'Нет особых пожеланий.'}</pre>
                     </div>
                 )}
             </div>

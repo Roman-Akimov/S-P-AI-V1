@@ -1,0 +1,120 @@
+/* src/components/OnboardingQuestionnairePage.css */
+.onboarding-page-container {
+    display: flex;
+    flex-direction: column; /* Важно для правильного расположения дочерних элементов, если их будет больше */
+    align-items: center;   /* Центрирует .onboarding-form-container по горизонтали */
+    overflow-y: auto;      /* ДОБАВЛЯЕТ вертикальную прокрутку, ЕСЛИ контент не помещается */
+    padding: 20px;         /* Отступы будут внутри прокручиваемой области */
+    box-sizing: border-box;
+    background-color: #f4f7f6;
+}
+
+.onboarding-form-container {
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 700px;
+    margin-top: 0; /* Например, если padding: 20px сверху в родителе достаточно */
+    margin-bottom: 20px; /* Оставляем отступ снизу для кнопки */
+}
+
+.onboarding-form-container h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.onboarding-form-container p {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #666;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+/* Стили для .ai-config-form и его элементов остаются как у вас, они хорошие */
+.ai-config-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+.ai-config-form input[type="text"],
+.ai-config-form input[type="time"],
+.ai-config-form input[type="number"],
+.ai-config-form select,
+.ai-config-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+.ai-config-form input:focus,
+.ai-config-form select:focus,
+.ai-config-form textarea:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.ai-config-form fieldset {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.ai-config-form legend {
+    font-weight: bold;
+    color: #333;
+    padding: 0 10px;
+}
+
+.ai-config-form .checkbox-label-inline {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 15px;
+    font-weight: normal;
+    color: #333;
+}
+.ai-config-form .checkbox-label-inline input[type="checkbox"] {
+    width: auto;
+    margin-right: 5px;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
+.ai-config-form textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.ai-config-form .submit-button,
+.onboarding-form-container .submit-button {
+    display: block;
+    width: auto;
+    min-width: 200px;
+    margin: 30px auto 0;
+    padding: 12px 25px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.ai-config-form .submit-button:hover,
+.onboarding-form-container .submit-button:hover {
+    background-color: #218838;
+}

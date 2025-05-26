@@ -1,96 +1,257 @@
+/* App.css */
 :root {
-  --deep-space: #382828;
-  --cosmic-purple: #1a0a2e;
-  --galaxy-edge: #401f64;
-  --neon-violet: #7e57c2;
-  --plasma-pink: #bd2424;
-  --stardust: #ffffff;
-  --nebula: rgba(126, 87, 194, 0.2);
+  --app-bg-main: #0D1017; /* Очень темный фон для основного контента */
+  --app-bg-sidebar: #171A21; /* Фон сайдбара, чуть светлее */
+  --app-bg-elements: #22272E; /* Фон для карточек, инпутов, кнопок */
+  --app-bg-hover: rgba(177, 186, 196, 0.12); /* Фон при наведении */
+  --app-bg-active: rgba(56, 139, 253, 0.25); /* Фон активного/выбранного элемента */
+
+  --app-text-primary: #E6EDF3;   /* Основной светлый текст */
+  --app-text-secondary: #7D8590; /* Вторичный, более тусклый текст */
+  --app-text-placeholder: #57606A; /* Текст плейсхолдеров */
+
+  --app-border-primary: #22272E;  /* Основной цвет границ */
+  --app-border-secondary: #373E47; /* Более заметные границы (если нужны) */
+
+  --app-accent-blue: #316DCA;     /* Акцентный синий (активные элементы, кнопки) */
+  --app-accent-purple: #895AE0;   /* Акцентный фиолетовый (для событий, категорий) */
+  --app-accent-teal: #4AD8D0;     /* Акцентный бирюзовый (для категорий) */
+  --app-accent-red: #DA3633;      /* Красный для ошибок, удаления */
+  --app-accent-green: #2DA44E;    /* Зеленый для успеха, добавления */
+
+  --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background-color: var(--deep-space);
-  color: var(--stardust);
+  font-family: var(--font-family-base);
+  background-color: var(--app-bg-main); /* Общий фон страницы, если что-то выйдет за пределы app-container */
+  color: var(--app-text-primary);
+  line-height: 1.5;
 }
 
 .app-container {
   display: flex;
-  flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, var(--deep-space) 0%, var(--cosmic-purple) 100%);
+  background-color: var(--app-bg-sidebar); /* Фон контейнера будет фоном сайдбара */
 }
 
-.app-nav {
-  background-color: rgba(26, 10, 46, 0.9);
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--galaxy-edge);
-  backdrop-filter: blur(5px);
+/* Стилизация .app-nav как сайдбара */
+.app-sidebar { /* Предполагаем, что вы переименуете класс app-nav в app-sidebar в App.js, или используйте .app-nav */
+  width: 240px; /* Ширина сайдбара как на скриншоте */
+  flex-shrink: 0;
+  background-color: var(--app-bg-sidebar);
+  border-right: 1px solid var(--app-border-primary);
+  padding: 15px 0;
   display: flex;
-  gap: 15px;
+  flex-direction: column;
+  color: var(--app-text-primary);
 }
 
-.nav-link {
-  color: var(--stardust);
+.sidebar-brand { /* Для "SingularityApp" вверху сайдбара */
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  margin-bottom: 15px;
+  color: var(--app-text-primary); /* Или акцентный цвет */
+  /* Можно добавить иконку-галочку как на скриншоте через ::before или img */
+}
+.sidebar-brand::before { /* Пример иконки */
+  content: '✓'; /* Замените на SVG или Font Icon */
+  margin-right: 8px;
+  color: var(--app-accent-purple); /* Или другой цвет */
+  border: 1px solid var(--app-accent-purple);
+  border-radius: 50%;
+  padding: 0px 5px;
+  font-size: 0.9em;
+}
+
+
+.app-sidebar ul { /* Общие стили для списков навигации в сайдбаре */
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.app-sidebar ul li {
+  margin: 0;
+}
+
+/* Стили для NavLink внутри сайдбара */
+.nav-link { /* Это класс из react-router-dom NavLink */
+  display: flex; /* Используем flex для иконки (если будет) и текста */
+  align-items: center;
+  padding: 10px 20px; /* Отступы как у элементов сайдбара */
+  color: var(--app-text-secondary);
   text-decoration: none;
-  text-align: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
   font-weight: 500;
+  font-size: 0.9rem;
+  border-left: 3px solid transparent; /* Для индикации активного элемента */
+  transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
 }
 
 .nav-link:hover {
-  background-color: var(--nebula);
-  color: #d4c4f0;
+  background-color: var(--app-bg-hover);
+  color: var(--app-text-primary);
 }
 
 .nav-link.active {
-  background-color: var(--neon-violet);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(99, 60, 155, 0.4);
+  background-color: var(--app-bg-active); /* Полупрозрачный фон для активного элемента */
+  color: var(--app-text-primary);
+  border-left-color: var(--app-accent-blue); /* Полоска слева как на скриншоте */
+  font-weight: 600;
 }
 
+/* Разделы в сайдбаре */
+.sidebar-section-title {
+  padding: 10px 20px 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--app-text-secondary);
+  margin-top: 15px;
+}
+
+/* Нижняя навигация (Профиль/Настройки) */
+.app-sidebar .sidebar-footer-nav {
+  margin-top: auto; /* Прижимает этот блок к низу */
+  padding-top: 15px;
+  border-top: 1px solid var(--app-border-primary);
+}
+
+/* Основной контент приложения */
 .app-content {
-  flex-grow: 1;
-  overflow: hidden;
-  color: #a69d9d;
-  text-align: center;
-  display: flex;
+  flex-grow: 1; /* Занимает все доступное пространство рядом с сайдбаром */
+  overflow: hidden; /* Предотвращает выход контента за пределы */
+  background-color: var(--app-bg-main);
   position: relative;
+  flex-direction: column; /* ВАЖНО: Его дочерние элементы (тулбар, календарь) будут располагаться вертикально */
+  color: var(--app-text-primary);
 }
 
-.loading-indicator {
+/* Стили для RegistrationPage и OnboardingQuestionnairePage, если они используют .app-container для фона */
+/* Если они рендерятся ВМЕСТО .app-container, то их собственные контейнеры надо стилизовать */
+
+.loading-indicator, .app-error {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: var(--stardust);
+  color: var(--app-text-primary);
   font-size: 1.1rem;
-  background-color: var(--galaxy-edge);
-  padding: 15px 25px;
+  background-color: var(--app-bg-elements);
+  padding: 20px 30px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--app-border-secondary);
 }
 
-/* Анимации */
 @keyframes pulse {
-  0% { opacity: 0.6; }
+  0% { opacity: 0.7; }
   50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  100% { opacity: 0.7; }
 }
 
 .loading-indicator {
   animation: pulse 1.5s infinite ease-in-out;
 }
 
-/* Календарь и профиль */
-.calendar-wrapper,
-.user-profile-page {
-  flex: 1;
-  background-color: rgba(33, 20, 66, 0.8);
-  overflow-y: auto;
-  padding: 20px;
+/* Глобальные стили для кнопок */
+button, .button {
+  font-family: var(--font-family-base);
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  border: 1px solid transparent;
 }
 
+button.primary, .button.primary {
+  background-color: var(--app-accent-blue);
+  color: var(--app-text-primary);
+  border-color: var(--app-accent-blue);
+}
+button.primary:hover, .button.primary:hover {
+  background-color: #4583D8; /* Чуть светлее/темнее */
+  border-color: #4583D8;
+}
+
+button.secondary, .button.secondary {
+  background-color: var(--app-bg-elements);
+  color: var(--app-text-primary);
+  border-color: var(--app-border-secondary);
+}
+button.secondary:hover, .button.secondary:hover {
+  background-color: var(--app-border-secondary); /* Чуть темнее */
+}
+
+button:disabled, .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Глобальные стили для инпутов */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="time"],
+input[type="date"],
+input[type="number"],
+textarea,
+select {
+  font-family: var(--font-family-base);
+  background-color: var(--app-bg-elements);
+  color: var(--app-text-primary);
+  border: 1px solid var(--app-border-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+  /* ... и для других инпутов ... */
+textarea::placeholder {
+  color: var(--app-text-placeholder);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+  /* ... и для других инпутов ... */
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--app-accent-blue);
+  box-shadow: 0 0 0 2px rgba(var(--app-accent-blue), 0.3); /* Согласовать с цветом accent-blue */
+}
+
+/* Стили для чекбоксов и радио (могут потребовать кастомной реализации для полного соответствия) */
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--app-accent-blue); /* Простой способ стилизации для современных браузеров */
+  margin-right: 8px;
+  vertical-align: middle;
+}
+label {
+  color: var(--app-text-secondary);
+  font-size: 0.9rem;
+}
+label.checkbox-label-inline,
+label.radio-label-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 15px;
+  color: var(--app-text-primary);
+}
+
+fieldset {
+  border: 1px solid var(--app-border-primary);
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+legend {
+  font-weight: 600;
+  padding: 0 10px;
+  color: var(--app-text-primary);
+}

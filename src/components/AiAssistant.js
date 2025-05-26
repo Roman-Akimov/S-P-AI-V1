@@ -28,7 +28,7 @@ const callAIService = async (prompt, systemPrompt) => {
             body: JSON.stringify({
                 model: AI_MODEL,
                 messages: messages,
-                temperature: 0.2,
+                temperature: 0.2, // Adjusted temperature, similar to Python's 0.3, can be tuned
             }),
         });
 
@@ -207,45 +207,100 @@ const AiAssistant = ({ aiConfig, categories, onAddSchedules }) => {
     const [error, setError] = useState('');
 
     const generateSystemPrompt = useCallback(() => {
-        if (!aiConfig) return "";
-        const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        if (!aiConfig) return "Ошибка: Данные конфигурации пользователя (aiConfig) отсутствуют."; // Guard clause
+
+        const todayFullString = new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const currentDayOfWeekJS = new Date().getDay();
+        const jsDayToPythonDay = [7, 1, 2, 3, 4, 5, 6];
+        const pythonDayOfWeek = jsDayToPythonDay[currentDayOfWeekJS];
         const taskSeparator = "\n--- НОВАЯ ЗАДАЧА ---\n";
 
-        return `Ты - AI ассистент для планирования задач в календаре. Текущая дата: ${today}.
-Пользовательские настройки (для контекста):
-- Рабочее время: с ${aiConfig.workStartTime || 'N/A'} до ${aiConfig.workEndTime || 'N/A'}.
-- Рабочие дни: ${aiConfig.preferredWorkDays?.join(', ') || 'N/A'}.
-- Энергия (У/Д/В/Н): ${aiConfig.energyLevelByDayTime?.morning || '?'}/${aiConfig.energyLevelByDayTime?.afternoon || '?'}/${aiConfig.energyLevelByDayTime?.evening || '?'}/${aiConfig.energyLevelByDayTime?.night || '?'}.
-- Категории задач: ${categories.map(c => c.name).join(', ') || 'Нет категорий'}.
+        // Constructing the "personal_card" equivalent from aiConfig
+        let userDataSection = "### Данные пользователя (на основе анкеты и настроек):\n";
+        userDataSection += `- **Род занятий:** ${aiConfig.occupation || 'Не указано'}\n`;
+        userDataSection += `- **График работы (описательно):** ${aiConfig.workScheduleText || 'Не указано'}\n`;
+        userDataSection += `- **Стандартное время работы:** с ${aiConfig.workStartTime || 'N/A'} до ${aiConfig.workEndTime || 'N/A'}\n`;
+        userDataSection += `- **Предпочитаемые рабочие дни (для стандартного графика):** ${aiConfig.preferredWorkDays?.join(', ') || 'не указаны'}\n`;
+        userDataSection += `- **Удаленность работы/учебы:** ${aiConfig.commuteDistance || 'Не указано'}\n`;
+        userDataSection += `- **Обычный транспорт:** ${aiConfig.transportMode || 'Не указано'}\n`;
+        userDataSection += `- **Наилучшее время продуктивности (описательно):** ${aiConfig.peakProductivityTime || 'Не указано'}\n`;
+        userDataSection += `- **Уровни продуктивности (по времени суток, 1-низкий, 5-высокий):** Утро: ${aiConfig.energyLevelByDayTime?.morning || '?'}, День: ${aiConfig.energyLevelByDayTime?.afternoon || '?'}, Вечер: ${aiConfig.energyLevelByDayTime?.evening || '?'}, Ночь: ${aiConfig.energyLevelByDayTime?.night || '?'}\n`;
+        userDataSection += `- **Предпочитаемый стиль работы:** ${aiConfig.workStylePreference === 'подряд' ? 'Делать дела подряд' : 'Брать перерывы между делами'}\n`;
+        if (aiConfig.workStylePreference === 'с перерывами') {
+            userDataSection += `  - Длительность рабочего блока: ~${aiConfig.taskChunkingMinutes || 'N/A'} минут\n`;
+            userDataSection += `  - Длительность перерыва: ~${aiConfig.breakMinutes || 'N/A'} минут\n`;
+        }
+        userDataSection += `- **Скорость чтения:** ${aiConfig.readingSpeed || 'Не указана'}\n`;
+        userDataSection += `- **Скорость набора текста:** ${aiConfig.typingSpeed || 'Не указана'}\n`;
+        userDataSection += `- **Уровень усидчивости (1-10):** ${aiConfig.concentrationLevel || 'Не указан'}\n`;
+        userDataSection += `- **Тип личности:** ${aiConfig.personalityType || 'Не указан'}\n`;
+        userDataSection += `- **Образование:** ${aiConfig.educationBackground || 'Не указано'}\n`;
+        userDataSection += `- **Личные предпочтения/заметки для AI:** ${aiConfig.personalPreferencesNotes || 'Нет особых пожеланий.'}\n`;
+        userDataSection += `- **Доступные категории задач:** ${categories.map(c => c.name).join(', ') || 'Нет категорий'}\n`;
 
-Твоя задача: проанализировать запрос пользователя и СФОРМУЛИРОВАТЬ ТЕКСТОВОЕ описание ОДНОЙ или НЕСКОЛЬКИХ задач для календаря.
-Если в запросе несколько задач, ОПИШИ КАЖДУЮ ЗАДАЧУ ОТДЕЛЬНО, разделяя их специальным маркером: "${taskSeparator.trim()}".
 
-Для КАЖДОЙ задачи в ответе ПРЕДОСТАВЬ ТОЛЬКО ТЕКСТ, описывающий её. Старайся включить:
-1.  Четкое НАЗВАНИЕ задачи.
-2.  ДАТУ (например, "сегодня", "завтра", "15.07.2024").
-3.  ВРЕМЯ начала (например, "в 14:30", "утром"). Если указан ПРОМЕЖУТОК ВРЕМЕНИ (например, "с 10:00 до 12:00", "14:00-16:30"), укажи его. Если время не указано или сказано "весь день" - считай задачу на весь день.
-4.  Краткое ОПИСАНИЕ (если есть детали).
-5.  МЕСТО (если указано).
-6.  Упомяни подходящую КАТЕГОРИЮ.
-7.  Укажи ПРИОРИТЕТ.
+        let generalConsiderations = "### Как учитывать анкету и общие принципы планирования:\n";
+        generalConsiderations += "1.  **Рабочий/учебный график и занятость:** Нельзя планировать задачи в стандартное рабочее/учебное время, указанное в анкете. Учитывай описательный график работы, если он есть. Также помни о времени на дорогу (поле 'Удаленность работы/учебы' и 'Обычный транспорт').\n";
+        generalConsiderations += "2.  **Продуктивность:** Выбирай время для задач, когда пользователь наиболее продуктивен, основываясь на полях 'Наилучшее время продуктивности (описательно)' и 'Уровни продуктивности (по времени суток)'.\n";
+        generalConsiderations += "3.  **Перерывы:** Если пользователь предпочитает 'Брать перерывы между делами', не ставь задачи подряд. Учитывай указанную длительность рабочего блока и перерыва.\n";
+        generalConsiderations += "4.  **Скорость выполнения и тип задач:** Задачи, связанные с направленностью образования пользователя (поле 'Образование'), могут выполняться быстрее (например, гуманитарные задачи для гуманитария). Учитывай 'Скорость чтения' и 'Скорость набора текста' для оценки времени на письменные/читаемые задачи.\n";
+        generalConsiderations += "5.  **Усидчивость и тип личности:** 'Уровень усидчивости' может влиять на максимальную продолжительность одного блока работы. 'Тип личности' может влиять на предпочтение работы в одиночестве или с кем-то (если это релевантно задаче).\n";
+        generalConsiderations += "6.  **Личные предпочтения:** Обязательно учитывай информацию из поля 'Личные предпочтения/заметки для AI'. Например, если пользователь хочет видеть друзей раз в неделю, старайся оставить для этого время или предложи это, если задача не конфликтует.\n";
+        generalConsiderations += `7.  **Категории задач:** Отнеси задачу к одной из доступных категорий.\n`;
 
-Пример ответа для "Встреча с Петровым завтра в 11 и созвон с клиентом с 15:00 до 16:00":
-Встреча с Петровым
-Дата: завтра
-Время: 11:00
-Категория: Работа
-${taskSeparator.trim()}
-Созвон с клиентом
-Дата: завтра
-Время: с 15:00 до 16:00
+        let durationInterpretationRules = "### Правила интерпретации срока выполнения (если пользователь указывает период):\n";
+        durationInterpretationRules += "- Если \"на этой неделе\": до ближайшего воскресенья включительно.\n";
+        durationInterpretationRules += "- Если \"на этом месяце\": до последнего дня текущего месяца включительно.\n";
+        durationInterpretationRules += "- Если \"до пятницы\" и т.п.: вычисли разницу в днях, включая конечный день.\n";
+        durationInterpretationRules += "- Если \"за X дней\", \"до завтра\": вычисли явное количество дней.\n";
+        durationInterpretationRules += "- Если срок не указан: используй значение по умолчанию `3 дня` (если задача не выглядит очень маленькой или большой) для определения окна планирования.\n";
+
+        return `Ты — интеллектуальный планировщик задач. Твоя задача — анализировать информацию из запроса пользователя и его анкеты, чтобы выбрать **оптимальное время и параметры** для выполнения каждой задачи.
+
+---
+${userDataSection}
+---
+${generalConsiderations}
+---
+### Текущая дата и время:
+${todayFullString}
+(Текущий номер дня недели: ${pythonDayOfWeek}, где Понедельник = 1, ..., Воскресенье = 7)
+---
+${durationInterpretationRules}
+---
+### Формат твоего ответа (строго соблюдать!):
+Проанализируй запрос пользователя. Если в запросе несколько задач, ОПИШИ КАЖДУЮ ЗАДАЧУ ОТДЕЛЬНО, разделяя их специальным маркером: "${taskSeparator.trim()}".
+
+Для КАЖДОЙ задачи в ответе предоставь информацию в следующем формате (каждый пункт с новой строки, если присутствует):
+- **Название задачи:** (Четкое название)
+- **Дата:** (День.Месяц.Год или "сегодня", "завтра")
+- **Время:** (Часы:Минуты, или "с ЧЧ:ММ до ЧЧ:ММ", или "весь день")
+- **Описание:** (Краткое описание/детали задачи)
+- **Место:** (Если применимо)
+- **Категория:** (Одна из доступных)
+- **Приоритет:** (Например, Важно, Средний, Низкий)
+- **Примерное время выполнения:** (Твоя оценка, например, "1 час 30 минут", "около 2 часов")
+
+**Пример ответа для запроса "Нужно подготовить отчет к среде и сходить на тренировку завтра вечером":**
+Подготовить отчет
+Дата: (выбери подходящий день до среды)
+Время: (выбери оптимальное время, учитывая продуктивность)
+Описание: Составить ежемесячный отчет по продажам.
 Категория: Работа
 Приоритет: Важно
+Примерное время выполнения: 2 часа
+${taskSeparator.trim()}
+Тренировка
+Дата: завтра
+Время: вечером (например, 19:00 - 20:30)
+Описание: Сходить на запланированную тренировку.
+Категория: Личное
+Приоритет: Средний
+Примерное время выполнения: 1 час 30 минут
 
-Отвечай ТОЛЬКО текстом описания задач, разделенных маркером. Без приветствий.
+**Никакого лишнего текста! Только информация в указанном формате.**
 `;
     }, [aiConfig, categories]);
-
 
     const handleSendPrompt = async () => {
         if (!userPrompt.trim()) { setError("Введите ваш запрос."); return; }
@@ -330,41 +385,41 @@ ${taskSeparator.trim()}
             <div className="ai-prompt-section">
                 <textarea
                     rows="4"
-value={userPrompt}
-onChange={(e) => setUserPrompt(e.target.value)}
-placeholder="Например: Совещание завтра в 10 и обед с клиентом с 13:30 до 14:30"
-disabled={isLoading}
-/>
-<div className="ai-options">
-    <label>
-        <input type="checkbox" checked={useSystemPrompt} onChange={(e) => setUseSystemPrompt(e.target.checked)} disabled={isLoading} />
-        Использовать системный промпт (контекст)
-    </label>
-    <button onClick={handleSendPrompt} disabled={isLoading || !userPrompt.trim() || !HARDCODED_API_KEY || HARDCODED_API_KEY === 'ВАШ_API_КЛЮЧ_СЮДА'}>
-        {isLoading ? 'Обработка...' : 'Отправить AI'}
-    </button>
-</div>
-</div>
-{error && <p className="ai-error-message">{error}</p>}
-{isLoading && <div className="ai-loading-indicator">AI думает...</div>}
-{aiResponseText && !isLoading && ( <div className="ai-raw-response"> <h4>Текстовый ответ AI:</h4> <pre>{aiResponseText}</pre> </div> )}
-{suggestedTasks.length > 0 && (
-    <div className="ai-response-section">
-        <h3>Предложенные задачи (разобрано из текста):</h3>
-        <p>Отметьте задачи, которые хотите добавить.</p>
-        <ul className="suggested-tasks-list">
-            {suggestedTasks.map((task, index) => {
-                const category = categories.find(cat => cat.name === task.categoryGuess);
-                let displayTime = ''; try { const date = task.start; if (task.isAllDay) { displayTime = date.toLocaleDateString('ru-RU'); } else { displayTime = date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }); if (task.end && !task.isAllDay && task.end.getTime() !== task.start.getTime() ) { displayTime += ` - ${new Date(task.end).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;} } } catch { displayTime = 'Неверная дата'}
-                return ( <li key={task._originalIndex}> <label> <input type="checkbox" checked={selectedTaskIndices.includes(index)} onChange={() => handleTaskSelectionChange(index)} /> <strong>{task.title}</strong> {category && <span className="task-category-ai" style={{backgroundColor: category.color}}>{category.name}</span>} {!category && task.categoryGuess && <span className="task-category-ai guess">({task.categoryGuess}?)</span>} <span className="task-time-ai"> [{displayTime}]</span> {task.location && <span className="task-location-ai"> @ {task.location}</span>} {task.description && <span className="task-desc-ai"> - {task.description}</span>} </label> </li> );
-            })}
-        </ul>
-        <button onClick={handleAddSelectedTasks} disabled={selectedTaskIndices.length === 0} className="add-selected-button"> Добавить выбранные ({selectedTaskIndices.length}) </button>
-    </div>
-)}
-{!isLoading && suggestedTasks.length === 0 && aiResponseText && !error && ( <p>AI ответил, но не удалось распознать задачи в его тексте.</p> )}
-</div>
-);
+                    value={userPrompt}
+                    onChange={(e) => setUserPrompt(e.target.value)}
+                    placeholder="Например: Совещание завтра в 10 и обед с клиентом с 13:30 до 14:30"
+                    disabled={isLoading}
+                />
+                <div className="ai-options">
+                    <label>
+                        <input type="checkbox" checked={useSystemPrompt} onChange={(e) => setUseSystemPrompt(e.target.checked)} disabled={isLoading} />
+                        Использовать системный промпт (контекст)
+                    </label>
+                    <button onClick={handleSendPrompt} disabled={isLoading || !userPrompt.trim() || !HARDCODED_API_KEY || HARDCODED_API_KEY === 'ВАШ_API_КЛЮЧ_СЮДА'}>
+                        {isLoading ? 'Обработка...' : 'Отправить AI'}
+                    </button>
+                </div>
+            </div>
+            {error && <p className="ai-error-message">{error}</p>}
+            {isLoading && <div className="ai-loading-indicator">AI думает...</div>}
+            {aiResponseText && !isLoading && ( <div className="ai-raw-response"> <h4>Текстовый ответ AI:</h4> <pre>{aiResponseText}</pre> </div> )}
+            {suggestedTasks.length > 0 && (
+                <div className="ai-response-section">
+                    <h3>Предложенные задачи (разобрано из текста):</h3>
+                    <p>Отметьте задачи, которые хотите добавить.</p>
+                    <ul className="suggested-tasks-list">
+                        {suggestedTasks.map((task, index) => {
+                            const category = categories.find(cat => cat.name === task.categoryGuess);
+                            let displayTime = ''; try { const date = task.start; if (task.isAllDay) { displayTime = date.toLocaleDateString('ru-RU'); } else { displayTime = date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }); if (task.end && !task.isAllDay && task.end.getTime() !== task.start.getTime() ) { displayTime += ` - ${new Date(task.end).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;} } } catch { displayTime = 'Неверная дата'}
+                            return ( <li key={task._originalIndex}> <label> <input type="checkbox" checked={selectedTaskIndices.includes(index)} onChange={() => handleTaskSelectionChange(index)} /> <strong>{task.title}</strong> {category && <span className="task-category-ai" style={{backgroundColor: category.color}}>{category.name}</span>} {!category && task.categoryGuess && <span className="task-category-ai guess">({task.categoryGuess}?)</span>} <span className="task-time-ai"> [{displayTime}]</span> {task.location && <span className="task-location-ai"> @ {task.location}</span>} {task.description && <span className="task-desc-ai"> - {task.description}</span>} </label> </li> );
+                        })}
+                    </ul>
+                    <button onClick={handleAddSelectedTasks} disabled={selectedTaskIndices.length === 0} className="add-selected-button"> Добавить выбранные ({selectedTaskIndices.length}) </button>
+                </div>
+            )}
+            {!isLoading && suggestedTasks.length === 0 && aiResponseText && !error && ( <p>AI ответил, но не удалось распознать задачи в его тексте.</p> )}
+        </div>
+    );
 };
 
 export default AiAssistant;

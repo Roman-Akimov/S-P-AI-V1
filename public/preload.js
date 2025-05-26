@@ -6,7 +6,6 @@ const fse = require('fs-extra');
 
 let userDataPath = null; // Кэш для пути
 
-// Асинхронная функция для получения/кэширования пути
 async function getUserDataPath() {
     if (!userDataPath) {
         try {
@@ -18,14 +17,12 @@ async function getUserDataPath() {
             console.log('[Preload] User data path received:', userDataPath);
         } catch (err) {
             console.error("[Preload] Failed to get user data path:", err);
-            // Пробрасываем ошибку, чтобы операции с файлами не выполнялись без пути
             throw err;
         }
     }
     return userDataPath;
 }
 
-// Сразу определяем API, которое будет экспортировано
 const fileSystemApiDefinition = {
     async ensureDataDir() {
         const dir = await getUserDataPath(); // Получаем путь при вызове
@@ -65,7 +62,6 @@ const fileSystemApiDefinition = {
     }
 };
 
-// Экспонируем API через contextBridge, если изоляция включена
 if (process.contextIsolated) {
     try {
         contextBridge.exposeInMainWorld('electronFs', fileSystemApiDefinition);
