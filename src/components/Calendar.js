@@ -3,17 +3,29 @@ import Calendar from 'tui-calendar';
 import 'tui-calendar/dist/tui-calendar.css';
 import 'tui-date-picker/dist/tui-date-picker.css';
 import 'tui-time-picker/dist/tui-time-picker.css';
-import './Calendar.css';
+import './Calendar.css'; // Убедитесь, что этот файл существует и обновлен
 
 const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// --- Date Helper Functions ---
 const parseInputDate = (input) => {
     if (!input) return null;
-    if (typeof input.toDate === 'function') { return input.toDate(); }
-    if (input instanceof Date) { return new Date(input.getTime()); }
-    if (typeof input === 'string') { const d = new Date(input); if (!isNaN(d.getTime())) { return d; } }
+    if (typeof input.toDate === 'function') { // TUI TZDate
+        return input.toDate();
+    }
+    if (input instanceof Date) { // JavaScript Date
+        return new Date(input.getTime()); // Clone
+    }
+    if (typeof input === 'string') { // Date string
+        const d = new Date(input);
+        if (!isNaN(d.getTime())) {
+            return d;
+        }
+    }
+    // console.warn("parseInputDate: Unparseable date input", input);
     return null;
 };
+
 const formatDateToDateTimeLocalString = (dateObj) => {
     if (!dateObj || isNaN(dateObj.getTime())) return '';
     const year = dateObj.getFullYear();
@@ -23,6 +35,7 @@ const formatDateToDateTimeLocalString = (dateObj) => {
     const minutes = dateObj.getMinutes().toString().padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
+
 const formatDateToDateString = (dateObj) => {
     if (!dateObj || isNaN(dateObj.getTime())) return '';
     const year = dateObj.getFullYear();
@@ -31,16 +44,29 @@ const formatDateToDateString = (dateObj) => {
     return `${year}-${month}-${day}`;
 };
 
+// Иконки-плейсхолдеры (ЗАМЕНИТЕ НА РЕАЛЬНЫЕ ИКОНКИ, например, из react-icons)
+const SearchIcon = () => <span role="img" aria-label="search" style={{display: 'flex', alignItems: 'center', color: 'var(--app-text-placeholder)'}}>🔍</span>;
+const NotificationIcon = () => <span role="img" aria-label="notifications" style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center' }}>🔔</span>;
+// const SettingsIcon = () => <span role="img" aria-label="settings" style={{ fontSize: '1.1em' }}>⚙️</span>;
+const CollapseSidebarIcon = () => <span role="img" aria-label="collapse sidebar" style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center' }}>«</span>;
+
+
+// Компонент CalendarComponent
 const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSchedulesChange, activeCategoryFilters }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentScheduleData, setCurrentScheduleData] = useState(null);
     const [modalErrorMessage, setModalErrorMessage] = useState('');
+
+    const [currentCalendarTitle, setCurrentCalendarTitle] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeView, setActiveView] = useState('month'); // Начальный вид
+
     const calendarContainerRef = useRef(null);
     const calendarInstanceRef = useRef(null);
     const titleInputRef = useRef(null);
     const schedulesRef = useRef(schedulesFromApp);
-    const categoriesRef = useRef(allCategories); // Используем для получения актуальных категорий
+    const categoriesRef = useRef(allCategories);
 
     useEffect(() => { schedulesRef.current = schedulesFromApp; }, [schedulesFromApp]);
     useEffect(() => { categoriesRef.current = allCategories; }, [allCategories]);
@@ -74,7 +100,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         };
     }, []);
 
-    const formatModalDataForState = useCallback((modalData) => { /* ... как было ... */
+    const formatModalDataForState = useCallback((modalData) => {
         const id = modalData.id || generateId();
         const subtasks = (Array.isArray(modalData.subtasks) ? modalData.subtasks : [])
             .map(st => ({ id: st.id || generateId(), text: st.text || '', completed: !!st.completed }))
@@ -88,7 +114,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         };
     }, []);
 
-    const convertStateToTuiFormat = useCallback((stateSchedule) => { /* ... как было ... */
+    const convertStateToTuiFormat = useCallback((stateSchedule) => {
         const currentCategoriesList = Array.isArray(categoriesRef.current) ? categoriesRef.current : [];
         const categoryInfo = stateSchedule.categoryId ? currentCategoriesList.find(c => c.id === stateSchedule.categoryId) : null;
         let start = null, end = null;
@@ -122,19 +148,19 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
     const formatScheduleForModalRef = useRef(formatScheduleForModal);
     useEffect(() => { formatScheduleForModalRef.current = formatScheduleForModal; }, [formatScheduleForModal]);
 
-    const openModal = (scheduleData, editMode) => { /* ... как было ... */
+    const openModal = (scheduleData, editMode) => {
         setCurrentScheduleData(scheduleData);
         setIsEditing(editMode);
         setModalErrorMessage('');
         setModalOpen(true);
     };
-    const closeModal = () => { /* ... как было ... */
+    const closeModal = () => {
         setModalOpen(false);
         setIsEditing(false);
         setModalErrorMessage('');
         if (calendarInstanceRef.current) { calendarInstanceRef.current.render(); }
     };
-    const handleTUICreate = useCallback((event) => { /* ... как было ... */
+    const handleTUICreate = useCallback((event) => {
         const currentCategoriesList = Array.isArray(categoriesRef.current) ? categoriesRef.current : [];
         const defaultCategory = currentCategoriesList.find(c => c.checked !== false) || currentCategoriesList[0] || { id: null };
         const scheduleDataForModal = formatScheduleForModalRef.current({
@@ -142,12 +168,14 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
             location: '', priority: 'Medium', subtasks: [], description: '', completed: false
         });
         openModal(scheduleDataForModal, false);
-    }, []);
-    const handleTUIClick = useCallback((event) => { /* ... как было ... */
+    }, []); // Removed categoriesRef dependency as it's a ref
+
+    const handleTUIClick = useCallback((event) => {
         if (!event.schedule) return;
         openModal(formatScheduleForModalRef.current(event.schedule), true);
-    }, []);
-    const handleTUIUpdate = useCallback((event) => { /* ... как было ... */
+    }, []); // Removed formatScheduleForModalRef dependency as it's a ref
+
+    const handleTUIUpdate = useCallback((event) => {
         const { schedule, changes } = event;
         const currentSchedules = Array.isArray(schedulesRef.current) ? schedulesRef.current : [];
         const originalStateSchedule = currentSchedules.find(s => s.id === schedule.id);
@@ -162,7 +190,36 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
             start: formattedForModalStrings.start, end: formattedForModalStrings.end,
         });
         onSchedulesChange(prev => prev.map(s => s.id === updatedDataForState.id ? updatedDataForState : s));
-    }, [formatModalDataForState, onSchedulesChange]);
+    }, [formatModalDataForState, onSchedulesChange]); // formatScheduleForModalRef is a ref
+
+    const updateCalendarTitle = useCallback(() => {
+        if (!calendarInstanceRef.current) return;
+        const cal = calendarInstanceRef.current;
+        const viewName = cal.getViewName();
+        const date = cal.getDate().toDate();
+
+        let titleText = '';
+        if (viewName === 'month') {
+            titleText = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
+            if (!titleText.endsWith(' г.')) { titleText += ' г.'; }
+        } else if (viewName === 'week') {
+            const startDate = cal.getDateRangeStart().toDate();
+            const endDate = cal.getDateRangeEnd().toDate();
+            const startMonth = startDate.toLocaleString('ru-RU', { month: 'short' });
+            const endMonth = endDate.toLocaleString('ru-RU', { month: 'short' });
+            if (startDate.getFullYear() !== endDate.getFullYear()) {
+                titleText = `${startDate.getDate()} ${startMonth} ${startDate.getFullYear()} г. - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+            } else if (startDate.getMonth() !== endDate.getMonth()) {
+                titleText = `${startDate.getDate()} ${startMonth} - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+            } else {
+                titleText = `${startDate.getDate()} - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+            }
+        } else { // day or custom view like '4day'
+            titleText = date.toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+            if (!titleText.endsWith(' г.')) { titleText += ' г.'; }
+        }
+        setCurrentCalendarTitle(titleText);
+    }, []);
 
     useEffect(() => {
         if (!calendarContainerRef.current) return;
@@ -181,27 +238,36 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
 
         if (isFirstInit) {
             cal = new Calendar(calendarContainerRef.current, {
-                defaultView: 'week', taskView: false, scheduleView: ['time', 'allday'],
+                defaultView: activeView,
+                taskView: false, scheduleView: ['time', 'allday'],
                 useCreationPopup: false, useDetailPopup: false,
                 calendars: tuiCalendarsDefinition,
-                month: { startDayOfWeek: 1, daynames: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'], isAlways6Weeks: false, visibleWeeksCount: 6 },
-                week: { startDayOfWeek: 1, daynames: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'], hourStart: 7, hourEnd: 23, },
+                month: { startDayOfWeek: 1, daynames: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], isAlways6Weeks: false, visibleWeeksCount: 6 },
+                week: { startDayOfWeek: 1, daynames: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], hourStart: 0, hourEnd: 24 },
                 template: {
                     alldayTitle: () => 'Весь день',
                     timegridDisplayPrimayTime: (time) => `${String(time.hour).padStart(2, '0')}:00`,
-                    monthDayname: (model) => `<span class="tui-full-calendar-month-dayname-label">${model.label}</span>`,
                 }
             });
             calendarInstanceRef.current = cal;
             cal.on('beforeCreateSchedule', handleTUICreate);
             cal.on('clickSchedule', handleTUIClick);
             cal.on('beforeUpdateSchedule', handleTUIUpdate);
+            updateCalendarTitle();
         } else {
             cal.setCalendars(tuiCalendarsDefinition);
         }
 
-        const currentSchedulesToDisplay = Array.isArray(schedulesRef.current) ? schedulesRef.current : [];
-        const schedulesForTui = currentSchedulesToDisplay.map(convertStateToTuiFormat).filter(s => s.start);
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const searchedSchedules = searchTerm
+            ? (Array.isArray(schedulesRef.current) ? schedulesRef.current : []).filter(s =>
+                s.title?.toLowerCase().includes(lowerSearchTerm) ||
+                s.description?.toLowerCase().includes(lowerSearchTerm) ||
+                s.location?.toLowerCase().includes(lowerSearchTerm)
+            )
+            : (Array.isArray(schedulesRef.current) ? schedulesRef.current : []);
+
+        const schedulesForTui = searchedSchedules.map(convertStateToTuiFormat).filter(s => s.start);
 
         cal.clear();
         if (schedulesForTui.length > 0) {
@@ -209,41 +275,24 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
             catch (error) { console.error("Error creating TUI schedules:", error, schedulesForTui); }
         }
 
-        // Управление видимостью календарей на основе activeCategoryFilters
-        const activeIds = new Set(activeCategoryFilters || []);
-        const allAppCategoryIds = new Set(currentAppCategories.map(c => c.id));
-
+        const activeIdsSet = new Set(activeCategoryFilters || []);
         tuiCalendarsDefinition.forEach(tuiCalDef => {
-            let shouldBeVisible;
-            // Если activeCategoryFilters не определен или пуст, ИЛИ все категории приложения выбраны, то показываем все.
-            // Либо если activeCategoryFilters содержит ID текущего TUI календаря.
-            if (activeCategoryFilters === undefined || activeCategoryFilters.length === 0 || activeCategoryFilters.length === allAppCategoryIds.size) {
-                shouldBeVisible = true; // Показать все, если нет активных фильтров или все выбраны
+            let isVisible;
+            if (!activeCategoryFilters || activeCategoryFilters.length === 0) {
+                isVisible = true;
             } else {
-                shouldBeVisible = activeIds.has(tuiCalDef.id);
+                isVisible = activeIdsSet.has(tuiCalDef.id);
             }
-
-            // Особая логика для 'default' (Без категории)
-            // Если есть активные фильтры по категориям, и 'default' не в их числе, 'default' скрывается.
-            // Если фильтров нет (показать все), 'default' виден.
-            if (tuiCalDef.id === 'default' && activeCategoryFilters && activeCategoryFilters.length > 0 && !activeIds.has('default')) {
-                // Если есть активные фильтры, и 'default' не среди них, то он не должен быть виден,
-                // если только не было принято решение показывать его всегда при активных фильтрах.
-                // Для строгого фильтра:
-                // shouldBeVisible = activeIds.has('default'); // это будет false, если 'default' не в activeIds
-            }
-
-
             try {
-                cal.toggleSchedules(tuiCalDef.id, !shouldBeVisible, false); // false для renderRelated, чтобы не было многократных render
-            } catch (e) { /* console.warn(`Could not toggle visibility for TUI calendar ${tuiCalDef.id}`, e); */ }
+                cal.toggleSchedules(tuiCalDef.id, !isVisible, false);
+            } catch (e) { /* console.warn(...) */ }
         });
 
-        cal.render(); // Один render в конце
+        cal.render();
 
-    }, [schedulesFromApp, allCategories, activeCategoryFilters, convertStateToTuiFormat, handleTUICreate, handleTUIClick, handleTUIUpdate]);
+    }, [schedulesFromApp, allCategories, activeCategoryFilters, convertStateToTuiFormat, handleTUICreate, handleTUIClick, handleTUIUpdate, searchTerm, updateCalendarTitle, activeView]);
 
-    useEffect(() => { /* ... очистка TUI Calendar instance ... */
+    useEffect(() => {
         const instance = calendarInstanceRef.current;
         return () => {
             if (instance) {
@@ -256,30 +305,38 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         };
     }, [handleTUICreate, handleTUIClick, handleTUIUpdate]);
 
-    const changeView = (viewName) => { calendarInstanceRef.current?.changeView(viewName, true); };
-    const navigate = (direction) => { const c = calendarInstanceRef.current; if(!c) return; if(direction === 'prev') c.prev(); else if (direction === 'next') c.next(); else if (direction === 'today') c.today(); };
-    const handleModalChange = (e) => { /* ... как было ... */
+    const changeView = (viewName) => {
+        let tuiViewName = viewName;
+        if (viewName === '4day') {
+            // TODO: Implement logic for '4day' view if TUI doesn't support it directly
+            // For now, let it be 'week' or some other fallback
+            tuiViewName = 'week';
+            console.log("4-day view selected, TUI will show: " + tuiViewName);
+        }
+        calendarInstanceRef.current?.changeView(tuiViewName, true);
+        setActiveView(viewName);
+        updateCalendarTitle();
+    };
+    const navigate = (direction) => {
+        const c = calendarInstanceRef.current;
+        if(!c) return;
+        if(direction === 'prev') c.prev();
+        else if (direction === 'next') c.next();
+        else if (direction === 'today') c.today();
+        updateCalendarTitle();
+    };
+
+    const handleModalChange = (e) => {
         setCurrentScheduleData(prev => ({...prev, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value}));
         if (modalErrorMessage) setModalErrorMessage('');
     };
-    const handlePriorityChange = (e) => { /* ... как было ... */
-        setCurrentScheduleData(prev => ({ ...prev, priority: e.target.value }));
-        if (modalErrorMessage) setModalErrorMessage('');
-    };
-    const handleSubtaskChange = (index, field, value) => { /* ... как было ... */
-        setCurrentScheduleData(prev => { const n = [...prev.subtasks]; n[index] = { ...n[index], [field]: value }; return { ...prev, subtasks: n }; });
-    };
-    const handleAddSubtask = () => { /* ... как было ... */
-        setCurrentScheduleData(prev => ({ ...prev, subtasks: [...prev.subtasks, { id: generateId(), text: '', completed: false }] }));
-    };
-    const handleRemoveSubtask = (index) => { /* ... как было ... */
-        setCurrentScheduleData(prev => ({ ...prev, subtasks: prev.subtasks.filter((_, i) => i !== index) }));
-    };
-    const handleToggleTaskCompleted = () => { /* ... как было ... */
-        setCurrentScheduleData(prev => ({ ...prev, completed: !prev.completed }));
-        if (modalErrorMessage) setModalErrorMessage('');
-    };
-    const handleSaveEvent = () => { /* ... как было ... */
+    const handlePriorityChange = (e) => { setCurrentScheduleData(prev => ({ ...prev, priority: e.target.value })); if (modalErrorMessage) setModalErrorMessage(''); };
+    const handleSubtaskChange = (index, field, value) => { setCurrentScheduleData(prev => { const n = [...prev.subtasks]; n[index] = { ...n[index], [field]: value }; return { ...prev, subtasks: n }; }); };
+    const handleAddSubtask = () => { setCurrentScheduleData(prev => ({ ...prev, subtasks: [...prev.subtasks, { id: generateId(), text: '', completed: false }] })); };
+    const handleRemoveSubtask = (index) => { setCurrentScheduleData(prev => ({ ...prev, subtasks: prev.subtasks.filter((_, i) => i !== index) })); };
+    const handleToggleTaskCompleted = () => { setCurrentScheduleData(prev => ({ ...prev, completed: !prev.completed })); if (modalErrorMessage) setModalErrorMessage(''); };
+
+    const handleSaveEvent = () => {
         setModalErrorMessage('');
         if (!currentScheduleData || !currentScheduleData.title?.trim()) {
             setModalErrorMessage('Название задачи не может быть пустым.');
@@ -302,33 +359,54 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         else { onSchedulesChange(prev => [...prev, scheduleForState]); }
         closeModal();
     };
-    const handleDeleteEvent = () => { /* ... как было ... */
+    const handleDeleteEvent = () => {
         if (!currentScheduleData || !currentScheduleData.id) return;
         onSchedulesChange(prev => prev.filter(s => s.id !== currentScheduleData.id));
         closeModal();
     };
-    useEffect(() => { /* ... автофокус ... */
+    useEffect(() => {
         if (modalOpen && titleInputRef.current) {
             setTimeout(() => { titleInputRef.current.focus(); }, 100);
         }
     }, [modalOpen]);
 
     return (
-        <>
-            <div className="calendar-toolbar-main">
-                <div className="calendar-toolbar-nav">
-                    <button onClick={() => navigate('today')} className="button secondary">Сегодня</button>
-                    <button onClick={() => navigate('prev')} className="button secondary">prev</button>
-                    <button onClick={() => navigate('next')} className="button secondary">></button>
+        <div className="calendar-page-container">
+            <div className="calendar-page-header-wrapper">
+                <div className="calendar-header-top-row">
+                    <div className="calendar-title-main">
+                        <h1>{'Календарь, '}{currentCalendarTitle}</h1>
+                    </div>
+                    <div className="calendar-header-actions">
+                        <div className="search-bar-container">
+                            <SearchIcon />
+                            <input
+                                type="text"
+                                placeholder="Поиск"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="calendar-search-input"
+                            />
+                        </div>
+                    </div>
                 </div>
-                <div className="calendar-current-range"> </div>
-                <div className="calendar-toolbar-viewmodes">
-                    <button onClick={() => changeView('month')} className="button secondary">Месяц</button>
-                    <button onClick={() => changeView('week')} className="button secondary">Неделя</button>
-                    <button onClick={() => changeView('day')} className="button secondary">День</button>
+
+                <div className="calendar-header-bottom-row">
+                    <div className="calendar-view-controls">
+                        <button onClick={() => changeView('day')} className={`button view-btn ${activeView === 'day' ? 'active-view' : ''}`}>День</button>
+                        <button onClick={() => changeView('week')} className={`button view-btn ${activeView === 'week' ? 'active-view' : ''}`}>Неделя</button>
+                        <button onClick={() => changeView('month')} className={`button view-btn ${activeView === 'month' ? 'active-view' : ''}`}>Месяц</button>
+                    </div>
+                    <div className="calendar-nav-controls">
+                        <button onClick={() => navigate('prev')} className="button iconic nav-arrow" title="Назад">‹</button>
+                        <button onClick={() => navigate('today')} className="button today-btn">Сегодня</button>
+                        <button onClick={() => navigate('next')} className="button iconic nav-arrow" title="Вперед">›</button>
+                    </div>
                 </div>
             </div>
+
             <div ref={calendarContainerRef} className="tui-calendar-container-customtheme"></div>
+
             {modalOpen && currentScheduleData && (
                 <div className="modal-backdrop">
                     <div className="modal-content">
@@ -387,7 +465,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 };
 

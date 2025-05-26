@@ -1,6 +1,6 @@
 // src/components/RegistrationPage.js
 import React, { useState } from 'react';
-import './RegistrationPage.css'; // Создадим этот файл для стилей
+import './RegistrationPage.css';
 
 const RegistrationPage = ({ onRegister }) => {
     const [name, setName] = useState('');

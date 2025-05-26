@@ -1,304 +1,684 @@
-/* components/Calendar.css */
+/* App.css */
+:root {
+    --app-bg-main: #0D1017;
+    --app-bg-sidebar: #171A21;
+    --app-bg-elements: #22272E;
+    --app-bg-hover: rgba(177, 186, 196, 0.12);
+    --app-bg-active: rgba(56, 139, 253, 0.25);
 
-/* --- Тулбар календаря --- */
-.calendar-toolbar-main {
+    --app-text-primary: #E6EDF3;
+    --app-text-secondary: #7D8590;
+    --app-text-placeholder: #57606A;
+
+    --app-border-primary: #22272E;
+    --app-border-secondary: #373E47;
+
+    --app-accent-blue: #316DCA;
+    --app-accent-purple: #895AE0;
+    --app-accent-teal: #4AD8D0;
+    --app-accent-red: #DA3633;
+    --app-accent-green: #2DA44E;
+
+    --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family-base);
+    background-color: var(--app-bg-main);
+    color: var(--app-text-primary);
+    line-height: 1.5;
+    overflow: hidden; /* Предотвращаем скролл на body, если 100vh используется для app-container */
+}
+
+.app-container {
     display: flex;
-    justify-content: space-between;
+    height: 100vh;
+    background-color: var(--app-bg-sidebar);
+}
+
+.app-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background-color: var(--app-bg-sidebar);
+    border-right: 1px solid var(--app-border-primary);
+    padding: 15px 0;
+    display: flex;
+    flex-direction: column;
+    color: var(--app-text-primary);
+}
+
+.sidebar-brand {
+    display: flex;
     align-items: center;
-    padding: 10px 15px;
-    background-color: var(--app-bg-main); /* Такой же как фон контента */
-    border-bottom: 1px solid var(--app-border-primary);
-    margin-bottom: 10px; /* Отступ до самого календаря */
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    margin-bottom: 15px;
+    color: var(--app-text-primary);
 }
 
-.calendar-toolbar-nav,
-.calendar-toolbar-viewmodes {
+.sidebar-brand-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    background-image: url('/public/logotype.png'); /* ОБЯЗАТЕЛЬНО ПРОВЕРЬТЕ ПУТЬ! */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.app-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.app-sidebar ul li {
+    margin: 0;
+}
+
+.nav-link {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    padding: 10px 20px;
+    color: var(--app-text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+    transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
 }
 
-.calendar-toolbar-main .button.secondary { /* Стили для кнопок тулбара */
-    background-color: var(--app-bg-elements);
-    border-color: var(--app-border-secondary);
+.nav-link:hover {
+    background-color: var(--app-bg-hover);
+    color: var(--app-text-primary);
+}
+
+.nav-link.active {
+    background-color: var(--app-bg-active);
+    color: var(--app-text-primary);
+    border-left-color: var(--app-accent-blue);
+    font-weight: 600;
+}
+
+.sidebar-section-title {
+    padding: 10px 20px 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
     color: var(--app-text-secondary);
+    margin-top: 15px;
+}
+
+.app-sidebar .sidebar-footer-nav {
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid var(--app-border-primary);
+}
+
+.app-content {
+    flex-grow: 1;
+    /* overflow: hidden;  Убрано, чтобы .calendar-page-container мог скроллиться если надо */
+    background-color: var(--app-bg-main);
+    /* position: relative; Убрано, не требуется для flex layout */
+    display: flex; /* Для .calendar-page-container */
+    flex-direction: column;
+    color: var(--app-text-primary);
+    padding: 30px 20px 20px 20px; /* Добавляем padding, верхний уберем, т.к. хедер календаря будет иметь свой */
+    box-sizing: border-box;
+}
+
+.loading-indicator, .app-error {
+    /* ... как было ... */
+    position: fixed; /* Изменено на fixed для перекрытия всего, если необходимо */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--app-text-primary);
+    font-size: 1.1rem;
+    background-color: var(--app-bg-elements);
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--app-border-secondary);
+    z-index: 2000; /* Выше модальных окон */
+}
+
+@keyframes pulse { /* ... как было ... */ }
+.loading-indicator { /* ... как было ... */ }
+
+/* Глобальные стили для кнопок */
+button, .button { /* ... как было ... */ }
+button.primary, .button.primary { /* ... как было ... */ }
+button.primary:hover, .button.primary:hover { /* ... как было ... */ }
+button.secondary, .button.secondary { /* ... как было ... */ }
+button.secondary:hover, .button.secondary:hover { /* ... как было ... */ }
+button:disabled, .button:disabled { /* ... как было ... */ }
+
+/* Глобальные стили для инпутов */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="time"], input[type="date"], input[type="number"],
+textarea, select { /* ... как было ... */ }
+input[type="text"]::placeholder, /* ... */ textarea::placeholder { /* ... как было ... */ }
+input[type="text"]:focus, /* ... */ select:focus { /* ... как было ... */ }
+
+input[type="checkbox"], input[type="radio"] { /* ... как было ... */ }
+label { /* ... как было ... */ }
+label.checkbox-label-inline, label.radio-label-inline { /* ... как было ... */ }
+fieldset { /* ... как было ... */ }
+legend { /* ... как было ... */ }
+
+/* Модальное окно для добавления категории */
+.simple-modal-backdrop { /* ... как было ... */ }
+.simple-modal-content { /* ... как было ... */ }
+.simple-modal-content h3 { /* ... как было ... */ }
+.simple-modal-content label { /* ... как было ... */ }
+.simple-modal-content label:first-of-type { /* ... как было ... */ }
+.simple-modal-content input[type="text"] { /* ... как было ... */ }
+.color-picker-container { /* ... как было ... */ }
+.category-color-input { /* ... как было ... */ }
+.category-color-input::-webkit-color-swatch-wrapper { /* ... как было ... */ }
+.category-color-input::-webkit-color-swatch { /* ... как было ... */ }
+.category-color-input::-moz-color-swatch { /* ... как было ... */ }
+.category-color-input::-moz-focus-inner { /* ... как было ... */ }
+.color-preview { /* ... как было ... */ }
+.simple-modal-content .modal-actions { /* ... как было ... */ }
+
+/* Категории в сайдбаре */
+.category-dot { /* ... как было ... */ }
+.category-filter-link.disabled-filter .category-dot { /* ... как было ... */ }
+.category-filter-link.disabled-filter span:not(.category-dot) { /* ... как было ... */ }
+.category-filter-link:hover { /* ... как было ... */ }
+
+
+/* === CalendarComponent Стили (Calendar.css или сюда же) === */
+
+.calendar-page-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.calendar-page-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 0; /* Отступы сверху и снизу хедера, горизонтальные отступы от .app-content */
+    border-bottom: 1px solid var(--app-border-secondary);
+    flex-shrink: 0;
+    min-height: 40px; /* Минимальная высота, чтобы элементы не слипались */
+}
+
+.calendar-title-section {
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+}
+
+.calendar-title-section h2 {
+    font-size: 1.25rem; /* Чуть крупнее */
+    font-weight: 500;
+    color: var(--app-text-primary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 350px;
+}
+
+.calendar-view-controls {
+    display: flex;
+    align-items: center;
+}
+
+.calendar-view-controls .button {
+    margin: 0 2px;
     padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background-color: transparent; /* Делаем их "плоскими" по умолчанию */
+    border: 1px solid transparent; /* Убираем рамку по умолчанию */
+    color: var(--app-text-secondary);
+}
+.calendar-view-controls .button:hover {
+    background-color: var(--app-bg-hover);
+    color: var(--app-text-primary);
+}
+.calendar-view-controls .button.active-view {
+    background-color: var(--app-bg-elements); /* Фон для активной кнопки вида */
+    color: var(--app-text-primary);
+    font-weight: 500;
+    /* border-bottom: 2px solid var(--app-accent-blue); /* Подчеркивание как на скриншоте */
+    /* border-radius: 4px 4px 0 0; /* Убираем нижнее скругление, если есть подчеркивание */
+}
+
+
+.calendar-nav-controls {
+    display: flex;
+    align-items: center;
+    margin-left: 24px;
+}
+
+.calendar-nav-controls .button {
+    margin: 0 2px;
+    padding: 6px 10px;
     font-size: 0.85rem;
 }
-.calendar-toolbar-main .button.secondary:hover {
-    background-color: var(--app-border-secondary);
-    color: var(--app-text-primary);
+.calendar-nav-controls .button.iconic { /* Для < > кнопок */
+    font-size: 1.1rem; /* Делаем символы < > крупнее */
+    padding: 4px 8px;
 }
-.calendar-toolbar-main .button.secondary.active { /* Если будете добавлять класс для активного вида */
-    background-color: var(--app-accent-blue);
+
+
+.calendar-actions-controls {
+    display: flex;
+    align-items: center;
+    margin-left: auto; /* Прижимает эту группу к правому краю хедера */
+}
+
+.search-bar-container {
+    display: flex;
+    align-items: center;
+    background-color: var(--app-bg-elements);
+    padding: 0px 10px; /* Горизонтальные отступы */
+    border-radius: 6px;
+    border: 1px solid var(--app-border-primary);
+    height: 34px; /* Фиксированная высота как у кнопок */
+    box-sizing: border-box;
+}
+.search-bar-container:focus-within {
     border-color: var(--app-accent-blue);
-    color: var(--app-text-primary);
+    box-shadow: 0 0 0 1px var(--app-accent-blue); /* Тонкая обводка при фокусе */
 }
 
-.calendar-current-range {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--app-text-primary);
+.search-bar-container span[role="img"] {
+    margin-right: 8px;
+    color: var(--app-text-placeholder);
+    font-size: 0.9em; /* Размер иконки поиска */
 }
 
+.calendar-search-input {
+    background-color: transparent;
+    border: none;
+    padding: 6px 0;
+    color: var(--app-text-primary);
+    font-size: 0.9rem;
+    outline: 0 !important;
+    width: 120px;
+    height: 30px;
+}
+.calendar-search-input::placeholder {
+    color: var(--app-text-placeholder);
+}
+
+
+
+.button.iconic {
+    padding: 6px 8px;
+    min-width: auto;
+}
+
+/* Контейнер TUI календаря */
 .tui-calendar-container-customtheme {
-
-    flex-grow: 1; /* Занимает все доступное вертикальное пространство */
-    min-height: 0; /* Позволяет контейнеру сжиматься в flex-контейнере */
-    background-color: var(--app-bg-main);
-    border: 1px solid var(--app-border-primary);overflow: hidden; /* Важно для TUI */
+    height: 0; /* Важно для flex-grow, чтобы он правильно рассчитал высоту */
+    border: 20px;
+    background-color: var(--app-bg-main); /* Убедимся, что фон совпадает */
 }
 
-/* === Стилизация элементов TUI Calendar (ТЕМНАЯ ТЕМА) === */
-/* Общие */
-.tui-calendar-container-customtheme .tui-full-calendar-container,
-.tui-calendar-container-customtheme .tui-full-calendar-popup-container {
-    font-family: var(--font-family-base);
-    color: var(--app-text-primary);
+/* Скрытие стандартного хедера TUI Calendar, если он мешает */
+.tui-full-calendar-header,
+.tui-full-calendar-month-week-item .tui-full-calendar-dayname { /* Скрытие названий дней недели в месячном виде, если они дублируются */
+    /* display: none !important; */ /* Раскомментируйте, если нужно скрыть */
 }
-
-/* Заголовки дней недели (верхняя панель) */
-.tui-calendar-container-customtheme .tui-full-calendar-weekday-grid-header,
-.tui-calendar-container-customtheme .tui-full-calendar-month-week-item { /* Для месяца */
-    background-color: var(--app-bg-main); /* Чуть темнее фона элементов */
-    border-color: var(--app-border-primary) !important;
-}
-.tui-calendar-container-customtheme .tui-full-calendar-dayname-label {
-    color: var(--app-text-secondary) !important;
-    font-weight: 500;
-}
-.tui-calendar-container-customtheme .tui-full-calendar-weekday-grid-header .tui-full-calendar-dayname,
-.tui-calendar-container-customtheme .tui-full-calendar-month-dayname {
-    border-color: var(--app-border-primary) !important;
-}
+/* Если вы скрываете .tui-full-calendar-dayname, то вам нужно будет добавить свой ряд с Пн, Вт... над календарем,
+   что в месячном виде может быть сложно синхронизировать с сеткой TUI.
+   Проще оставить стандартные названия дней недели TUI в месячном виде. */
 
 
-/* Сетка времени (слева) */
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-left {
-    background-color: var(--app-bg-main);
-    border-color: var(--app-border-primary) !important;
-}
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-hourlabel,
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-halfhour {
-    color: var(--app-text-secondary) !important;
-    border-color: var(--app-border-primary) !important;
-}
-
-/* Основная сетка (линии) */
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-horizontal-line > div,
-.tui-calendar-container-customtheme .tui-full-calendar-weekday-grid-line,
-.tui-calendar-container-customtheme .tui-full-calendar-month-grid-line {
-    border-color: var(--app-border-primary) !important;
-}
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-guide-creation {
-    background-color: var(--app-accent-blue) !important;
-    opacity: 0.3;
-}
-
-
-/* Ячейки дней */
-.tui-calendar-container-customtheme .tui-full-calendar-daygrid-cell,
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-column {
-    background-color: var(--app-bg-main); /* Фон ячеек */
-}
-.tui-calendar-container-customtheme .tui-full-calendar-daygrid-cell-date,
-.tui-calendar-container-customtheme .tui-full-calendar-month-daygrid-cell .tui-full-calendar-daygrid-date-decorator{
-    color: var(--app-text-secondary);
-}
-
-/* Текущий день */
-.tui-calendar-container-customtheme .tui-full-calendar-today .tui-full-calendar-daygrid-date-decorator,
-.tui-calendar-container-customtheme .tui-full-calendar-today .tui-full-calendar-weekday-grid-date {
-    color: var(--app-accent-blue) !important;
-    font-weight: bold;
-}
-.tui-calendar-container-customtheme .tui-full-calendar-timegrid-column.tui-full-calendar-today,
-.tui-calendar-container-customtheme .tui-full-calendar-daygrid-cell.tui-full-calendar-today .tui-full-calendar-daygrid-cell-item{ /* Для month view */
-    background-color: rgba(49, 109, 202, 0.1) !important; /* Полупрозрачный фон для текущего дня */
-}
-
-/* События (schedules) */
-.tui-calendar-container-customtheme .tui-full-calendar-schedule-block {
-    border-radius: 4px;
-    font-size: 0.8rem;
-    padding: 3px 6px;
-    margin-bottom: 2px; /* Отступ между событиями */
-    /* color и bgColor устанавливаются через JS API (convertStateToTuiFormat) */
-    /* Важно: TUI может добавлять !important, поэтому иногда нужно переопределять так же */
-    border: none !important; /* Убираем стандартную рамку */
-    /* Можно добавить тень, если нужно */
-    /* box-shadow: 0 1px 3px rgba(0,0,0,0.3); */
-}
-.tui-calendar-container-customtheme .tui-full-calendar-weekday-schedule-title,
-.tui-calendar-container-customtheme .tui-full-calendar-time-schedule-content {
-    color: inherit !important; /* Текст наследует цвет от schedule-block */
-    font-weight: 500;
-}
-/* Убираем стандартный кружок TUI, если не нужен */
-.tui-calendar-container-customtheme .tui-full-calendar-icon.tui-full-calendar-ic-private,
-.tui-calendar-container-customtheme .tui-full-calendar-schedule-title:before, /* для allday */
-.tui-calendar-container-customtheme .tui-full-calendar-time-schedule:before /* для time */
-{
-    display: none !important;
-}
-
-
-/* --- Модальное окно (обновленные стили) --- */
+/* Модальное окно для задач календаря (стили из Calendar.css) */
 .modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(13, 17, 23, 0.8); /* Более темный фон */
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1050;
-    padding: 20px;
+    z-index: 1000; /* Ниже, чем модалка категорий, если они могут пересекаться */
 }
 
 .modal-content {
     background-color: var(--app-bg-elements);
-    padding: 25px 30px;
+    padding: 20px 25px;
     border-radius: 8px;
-    /* box-shadow: 0 5px 25px rgba(0,0,0,0.5); */ /* Тень может быть лишней на темном фоне */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    width: 90%;
+    max-width: 500px; /* Максимальная ширина модального окна задачи */
     border: 1px solid var(--app-border-secondary);
-    width: 100%;
-    max-width: 550px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-sizing: border-box;
     color: var(--app-text-primary);
+    max-height: 90vh; /* Ограничение по высоте */
+    overflow-y: auto; /* Скролл, если содержимое не помещается */
 }
 
 .modal-content h3 {
     margin-top: 0;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     font-size: 1.4rem;
-    font-weight: 600;
-    text-align: center;
-    color: var(--app-text-primary);
-    border-bottom: 1px solid var(--app-border-primary);
-    padding-bottom: 15px;
 }
 
 .modal-content label {
     display: block;
-    margin-bottom: 8px; /* Уменьшен отступ под лейблом */
-    font-size: 0.9rem;
-    color: var(--app-text-secondary);
+    margin-top: 12px;
+    margin-bottom: 6px;
     font-weight: 500;
+    color: var(--app-text-secondary);
 }
-.modal-content label input[type="text"],
-.modal-content label input[type="date"],
-.modal-content label input[type="datetime-local"],
-.modal-content label select,
-.modal-content label textarea {
-    display: block;
+.modal-content label:first-of-type {
+    margin-top: 0;
+}
+.modal-content label.modal-checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    color: var(--app-text-primary);
+    font-weight: normal;
+}
+.modal-content label.main-task-completed {
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+
+.modal-content input[type="text"],
+.modal-content input[type="datetime-local"],
+.modal-content input[type="date"],
+.modal-content textarea,
+.modal-content select {
     width: 100%;
-    margin-top: 4px;
-    margin-bottom: 15px; /* Отступ после инпута */
-    /* Стили инпутов наследуются из App.css */
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+.modal-content textarea {
+    min-height: 70px;
 }
 
 .modal-datetime-row {
     display: flex;
     gap: 15px;
-    align-items: flex-end; /* Выравнивание по низу, если есть чекбокс */
-    margin-bottom: 15px;
+    align-items: flex-end; /* Выравниваем чекбокс по низу инпутов */
+    margin-bottom: 10px;
 }
 .modal-datetime-item {
-    flex-grow: 1;
-    margin-bottom: 0 !important; /* Убираем лишний отступ у вложенных label */
+    flex: 1;
 }
-.modal-datetime-item input {
-    margin-bottom: 0 !important; /* Убираем лишний отступ у инпутов в строке */
-}
-
-
-.modal-checkbox-label {
-    display: flex;
-    align-items: center;
-    font-weight: normal;
-    color: var(--app-text-primary);
-    margin-bottom: 15px; /* Стандартный отступ для чекбоксов вне строки */
-}
-.modal-checkbox-label.main-task-completed { /* Для чекбокса "Выполнено" */
-    justify-content: center;
-    font-size: 1rem;
-    font-weight: 500;
-    padding: 8px;
-    background-color: rgba(var(--app-accent-green-rgb, 45, 164, 78), 0.1); /* (добавьте --app-accent-green-rgb в :root) */
-    border: 1px solid rgba(var(--app-accent-green-rgb, 45, 164, 78), 0.3);
-    border-radius: 6px;
+.modal-datetime-row label.modal-checkbox-label {
+    margin-bottom: 12px; /* Чтобы совпадало с нижним отступом инпутов */
 }
 
 
 .subtasks-section {
     margin-top: 20px;
-    padding-top: 15px;
+    margin-bottom: 20px;
     border-top: 1px solid var(--app-border-primary);
+    padding-top: 15px;
 }
 .subtasks-section h4 {
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1rem;
-    color: var(--app-text-secondary);
+    font-weight: 500;
 }
 .subtask-item {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
-    gap: 10px;
-    padding: 8px;
-    background-color: var(--app-bg-main); /* Фон для подзадачи, чуть темнее фона модалки */
-    border-radius: 4px;
+    margin-bottom: 8px;
+}
+.subtask-item input[type="checkbox"] {
+    margin-right: 10px;
+    flex-shrink: 0;
 }
 .subtask-item input[type="text"] {
     flex-grow: 1;
-    margin: 0; /* Убираем лишние отступы */
-    background-color: transparent; /* Делаем фон инпута прозрачным */
-    border: none; /* Убираем рамку инпута */
-    border-bottom: 1px solid var(--app-border-primary); /* Только нижняя линия */
-    border-radius: 0;
+    margin-bottom: 0; /* Убираем нижний отступ у инпута в подзадаче */
 }
-.subtask-item input[type="text"]:focus {
-    box-shadow: none;
-    border-bottom-color: var(--app-accent-blue);
-}
-.remove-subtask-btn.plain { /* Стили для кнопки удаления подзадачи */
+.remove-subtask-btn.plain { /* Кнопка удаления подзадачи */
     background: none;
     border: none;
     color: var(--app-text-secondary);
-    font-size: 1.5rem; /* Увеличить для лучшей кликабельности */
-    line-height: 1;
+    font-size: 1.3rem;
     padding: 0 5px;
+    margin-left: 5px;
     cursor: pointer;
+    line-height: 1;
 }
 .remove-subtask-btn.plain:hover {
     color: var(--app-accent-red);
 }
-.add-subtask-btn.button.secondary { /* Кнопка "Добавить подзадачу" */
+.add-subtask-btn {
     margin-top: 5px;
     font-size: 0.85rem;
-    padding: 6px 10px;
 }
-
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
     margin-top: 25px;
-    padding-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid var(--app-border-primary);
 }
-/* Стили кнопок (primary, secondary, danger) должны наследоваться из App.css */
-.modal-actions .button.danger { /* Если такой класс не определен в App.css */
+
+.modal-error-message {
     background-color: var(--app-accent-red);
-    border-color: var(--app-accent-red);
+    color: var(--app-text-primary);
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9rem;
+    /* border: 1px solid darken(var(--app-accent-red), 10%); */ /* darken не работает в CSS, можно просто убрать или задать цвет */
+    border: 1px solid #a52a25; /* Пример более темного красного */
+}
+
+
+/* Специфичные стили для TUI Calendar для темной темы */
+/* Нужно будет инспектировать элементы TUI и переопределять их цвета */
+.tui-full-calendar-timegrid- μπορούν { /* Время на боковой шкале */
+    color: var(--app-text-secondary);
+}
+.tui-full-calendar-dayname-container { /* Контейнер с днями недели (Пн, Вт...) */
+    color: var(--app-text-primary);
+    background-color: var(--app-bg-elements);
+    border-color: var(--app-border-secondary) !important;
+}
+.tui-full-calendar-month-dayname .tui-full-calendar-month-dayname-label { /* Названия дней в месячном виде */
+    color: var(--app-text-secondary);
+}
+
+.tui-full-calendar-weekday-schedule-title, .tui-full-calendar-allday-schedule-block {
+    color: var(--app-text-primary) !important; /* Текст событий */
+}
+
+/* Границы сетки */
+.tui-full-calendar-timegrid-container,
+.tui-full-calendar-timegrid,
+.tui-full-calendar-month,
+.tui-full-calendar-weekday,
+.tui-full-calendar-daygrid-cell,
+.tui-full-calendar-timegrid-hour,
+.tui-full-calendar-timegrid- çizgileriv,
+.tui-full-calendar-grid-line,
+.tui-full-calendar-guide- हॉरिजॉन्टल {
+    border-color: var(--app-border-secondary) !important;
+}
+
+.tui-full-calendar-grid-cell-date { /* Числа месяца */
+    color: var(--app-text-secondary);
+}
+.tui-full-calendar-grid-cell-date.tui-full-calendar-today { /* Сегодняшнее число */
+    background-color: var(--app-accent-blue) !important;
+    color: var(--app-text-primary) !important;
+    border-radius: 50%;
+}
+.tui-full-calendar-grid-cell-date- σήμερα .tui-full-calendar-weekday-grid-date-decorator {
+    color: var(--app-text-primary) !important; /* Для точки под "сегодня" в недельном виде */
+}
+
+
+/* Фон ячеек */
+.tui-full-calendar-daygrid-cell,
+.tui-full-calendar-timegrid-column {
+    background-color: var(--app-bg-main);
+}
+
+/* При выделении диапазона для создания события */
+.tui-full-calendar-timegrid-selection {
+    background-color: rgba(var(--app-accent-blue), 0.3) !important; /* Не работает с CSS переменными в RGBa */
+    background-color: rgba(49, 109, 202, 0.3) !important; /* Явно задаем цвет */
+    border: 1px solid var(--app-accent-blue) !important;
+}
+.tui-full-calendar-month-selection-bar {
+    background-color: rgba(49, 109, 202, 0.3) !important;
+    border: 1px solid var(--app-accent-blue) !important;
+}
+
+.calendar-page-header-wrapper {
+    display: flex;
+    flex-direction: column; /* Две строки друг под другом */
+    padding-bottom: 10px; /* Отступ между хедером и календарем */
+    /* border-bottom: 1px solid var(--app-border-secondary); /* Граница под всем хедером */
+    flex-shrink: 0;
+    margin-bottom: 40px;
+}
+
+.calendar-header-top-row,
+.calendar-header-bottom-row {
+    display: flex;
+    align-items: center;
+    min-height: 38px; /* Минимальная высота для строки хедера */
+    padding: 5px 0; /* Небольшие вертикальные отступы для строк */
+}
+
+/* --- Верхняя строка хедера --- */
+.calendar-header-top-row {
+    justify-content: space-between; /* Разносит элементы по краям */
+    border-bottom: 1px solid var(--app-border-secondary); /* Граница под верхней строкой */
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.calendar-title-main {
+    display: flex;
+    align-items: center;
+}
+
+.calendar-title-main h1 { /* Изменен с h2 на h1 для соответствия скриншоту */
+    font-size: 1.15rem; /* Размер как на скриншоте */
+    font-weight: 500;
+    color: var(--app-text-primary);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.calendar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Пространство между группами иконок */
+}
+
+.calendar-header-actions .search-bar-container {
+    height: 32px; /* Высота поиска */
+    padding: 0 10px;
+}
+
+
+.calendar-header-actions .button.iconic {
+    color: var(--app-text-secondary);
+    font-size: 1rem; /* Размер иконок */
+    padding: 4px; /* Меньше отступы для иконок */
+    background-color: transparent;
+    border: none;
+}
+.calendar-header-actions .button.iconic:hover {
+    color: var(--app-text-primary);
+    background-color: var(--app-bg-hover);
+}
+
+.action-divider {
+    width: 1px;
+    height: 16px;
+    background-color: var(--app-border-secondary);
+    margin: 0 5px; /* Отступы вокруг разделителя */
+}
+
+
+/* --- Нижняя строка хедера --- */
+.calendar-header-bottom-row {
+    justify-content: space-between; /* Кнопки вида слева, навигация справа */
+}
+
+.calendar-view-controls {
+    display: flex;
+    align-items: center;
+    background-color: var(--app-bg-elements); /* Фон для группы кнопок */
+    border-radius: 6px;
+    padding: 3px; /* Небольшой внутренний отступ */
+}
+
+.calendar-view-controls .button.view-btn {
+    margin: 0;
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 0.8rem; /* Меньше шрифт для кнопок вида */
+    background-color: transparent;
+    border: none;
+    color: var(--app-text-secondary);
+    font-weight: 500;
+}
+.calendar-view-controls .button.view-btn:hover {
     color: var(--app-text-primary);
 }
-.modal-actions .button.danger:hover {
-    opacity: 0.85;
+.calendar-view-controls .button.view-btn.active-view {
+    background-color: var(--app-accent-blue); /* Фон активной кнопки */
+    /* background-color: var(--app-bg-main); /* Или темный фон как на скриншоте */
+    color: var(--app-text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.calendar-nav-controls {
+    display: flex;
+    align-items: center;
+}
+
+.calendar-nav-controls .button {
+    margin: 0 3px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    background-color: transparent;
+    border: none;
+    color: var(--app-text-secondary);
+}
+.calendar-nav-controls .button:hover {
+    color: var(--app-text-primary);
+    background-color: var(--app-bg-hover);
+}
+.calendar-nav-controls .button.today-btn { /* Кнопка "Сегодня" */
+    font-weight: 500;
+    /* Возможно, выделить ее цветом или фоном, если она активна (т.е. текущий день) */
+}
+.calendar-nav-controls .button.iconic.nav-arrow {
+    font-size: 1.3rem;
+    padding: 5px 8px;
+}
+
+
+/* Основной контейнер TUI календаря */
+.tui-calendar-container-customtheme {
+    height: 0;
+    border: none;
+    background-color: var(--app-bg-main);
 }

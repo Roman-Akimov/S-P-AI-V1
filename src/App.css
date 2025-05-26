@@ -1,23 +1,23 @@
 /* App.css */
 :root {
-  --app-bg-main: #0D1017; /* Очень темный фон для основного контента */
-  --app-bg-sidebar: #171A21; /* Фон сайдбара, чуть светлее */
-  --app-bg-elements: #22272E; /* Фон для карточек, инпутов, кнопок */
-  --app-bg-hover: rgba(177, 186, 196, 0.12); /* Фон при наведении */
-  --app-bg-active: rgba(56, 139, 253, 0.25); /* Фон активного/выбранного элемента */
+  --app-bg-main: #0D1017;
+  --app-bg-sidebar: #171A21;
+  --app-bg-elements: #22272E;
+  --app-bg-hover: rgba(177, 186, 196, 0.12);
+  --app-bg-active: rgba(56, 139, 253, 0.25);
 
-  --app-text-primary: #E6EDF3;   /* Основной светлый текст */
-  --app-text-secondary: #7D8590; /* Вторичный, более тусклый текст */
-  --app-text-placeholder: #57606A; /* Текст плейсхолдеров */
+  --app-text-primary: #E6EDF3;
+  --app-text-secondary: #7D8590;
+  --app-text-placeholder: #57606A;
 
-  --app-border-primary: #22272E;  /* Основной цвет границ */
-  --app-border-secondary: #373E47; /* Более заметные границы (если нужны) */
+  --app-border-primary: #22272E;
+  --app-border-secondary: #373E47;
 
-  --app-accent-blue: #316DCA;     /* Акцентный синий (активные элементы, кнопки) */
-  --app-accent-purple: #895AE0;   /* Акцентный фиолетовый (для событий, категорий) */
-  --app-accent-teal: #4AD8D0;     /* Акцентный бирюзовый (для категорий) */
-  --app-accent-red: #DA3633;      /* Красный для ошибок, удаления */
-  --app-accent-green: #2DA44E;    /* Зеленый для успеха, добавления */
+  --app-accent-blue: #316DCA;
+  --app-accent-purple: #895AE0;
+  --app-accent-teal: #4AD8D0;
+  --app-accent-red: #DA3633;      /* Красный для ошибок, удаления (RGB: 218, 54, 51) */
+  --app-accent-green: #2DA44E;    /* Зеленый для успеха, добавления (RGB: 45, 164, 78) */
 
   --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -25,20 +25,20 @@
 body {
   margin: 0;
   font-family: var(--font-family-base);
-  background-color: var(--app-bg-main); /* Общий фон страницы, если что-то выйдет за пределы app-container */
+  background-color: var(--app-bg-main);
   color: var(--app-text-primary);
   line-height: 1.5;
+  overflow: hidden;
 }
 
 .app-container {
   display: flex;
   height: 100vh;
-  background-color: var(--app-bg-sidebar); /* Фон контейнера будет фоном сайдбара */
+  background-color: var(--app-bg-sidebar);
 }
 
-/* Стилизация .app-nav как сайдбара */
-.app-sidebar { /* Предполагаем, что вы переименуете класс app-nav в app-sidebar в App.js, или используйте .app-nav */
-  width: 240px; /* Ширина сайдбара как на скриншоте */
+.app-sidebar {
+  width: 240px;
   flex-shrink: 0;
   background-color: var(--app-bg-sidebar);
   border-right: 1px solid var(--app-border-primary);
@@ -48,26 +48,28 @@ body {
   color: var(--app-text-primary);
 }
 
-.sidebar-brand { /* Для "SingularityApp" вверху сайдбара */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
   font-size: 1.2rem;
   font-weight: 600;
   padding: 10px 20px;
   margin-bottom: 15px;
-  color: var(--app-text-primary); /* Или акцентный цвет */
-  /* Можно добавить иконку-галочку как на скриншоте через ::before или img */
-}
-.sidebar-brand::before { /* Пример иконки */
-  content: '✓'; /* Замените на SVG или Font Icon */
-  margin-right: 8px;
-  color: var(--app-accent-purple); /* Или другой цвет */
-  border: 1px solid var(--app-accent-purple);
-  border-radius: 50%;
-  padding: 0px 5px;
-  font-size: 0.9em;
+  color: var(--app-text-primary);
 }
 
+.sidebar-brand-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  background-image: url('/public/logotype.png'); /* ОБЯЗАТЕЛЬНО ПРОВЕРЬТЕ ПУТЬ! Если в public/logotype.png */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 
-.app-sidebar ul { /* Общие стили для списков навигации в сайдбаре */
+.app-sidebar ul {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -76,16 +78,15 @@ body {
   margin: 0;
 }
 
-/* Стили для NavLink внутри сайдбара */
-.nav-link { /* Это класс из react-router-dom NavLink */
-  display: flex; /* Используем flex для иконки (если будет) и текста */
+.nav-link {
+  display: flex;
   align-items: center;
-  padding: 10px 20px; /* Отступы как у элементов сайдбара */
+  padding: 10px 20px;
   color: var(--app-text-secondary);
   text-decoration: none;
   font-weight: 500;
   font-size: 0.9rem;
-  border-left: 3px solid transparent; /* Для индикации активного элемента */
+  border-left: 3px solid transparent;
   transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
 }
 
@@ -95,13 +96,12 @@ body {
 }
 
 .nav-link.active {
-  background-color: var(--app-bg-active); /* Полупрозрачный фон для активного элемента */
+  background-color: var(--app-bg-active);
   color: var(--app-text-primary);
-  border-left-color: var(--app-accent-blue); /* Полоска слева как на скриншоте */
+  border-left-color: var(--app-accent-blue);
   font-weight: 600;
 }
 
-/* Разделы в сайдбаре */
 .sidebar-section-title {
   padding: 10px 20px 5px;
   font-size: 0.75rem;
@@ -111,275 +111,283 @@ body {
   margin-top: 15px;
 }
 
-/* Нижняя навигация (Профиль/Настройки) */
 .app-sidebar .sidebar-footer-nav {
-  margin-top: auto; /* Прижимает этот блок к низу */
+  margin-top: auto;
   padding-top: 15px;
   border-top: 1px solid var(--app-border-primary);
 }
 
-/* Основной контент приложения */
 .app-content {
-  flex-grow: 1; /* Занимает все доступное пространство рядом с сайдбаром */
-  overflow: hidden; /* Предотвращает выход контента за пределы */
+  flex-grow: 1;
   background-color: var(--app-bg-main);
-  position: relative;
-  flex-direction: column; /* ВАЖНО: Его дочерние элементы (тулбар, календарь) будут располагаться вертикально */
+  display: flex;
+  flex-direction: column;
   color: var(--app-text-primary);
+  padding: 0 20px 20px 20px;
+  box-sizing: border-box;
+  overflow: hidden; /* Чтобы основной контент не создавал свой скроллбар, если CalendarPageContainer сам скроллится */
 }
 
-/* Стили для RegistrationPage и OnboardingQuestionnairePage, если они используют .app-container для фона */
-/* Если они рендерятся ВМЕСТО .app-container, то их собственные контейнеры надо стилизовать */
-
 .loading-indicator, .app-error {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: fixed;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   color: var(--app-text-primary);
   font-size: 1.1rem;
   background-color: var(--app-bg-elements);
-  padding: 20px 30px;
-  border-radius: 8px;
+  padding: 20px 30px; border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--app-border-secondary);
+  z-index: 2000;
 }
+@keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+.loading-indicator { animation: pulse 1.5s infinite ease-in-out; }
 
-@keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
-}
-
-.loading-indicator {
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-/* Глобальные стили для кнопок */
 button, .button {
-  font-family: var(--font-family-base);
-  padding: 8px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-family: var(--font-family-base); padding: 8px 15px; border-radius: 6px;
+  cursor: pointer; font-size: 0.9rem; font-weight: 500;
   transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
   border: 1px solid transparent;
 }
+button.primary, .button.primary { background-color: var(--app-accent-blue); color: var(--app-text-primary); border-color: var(--app-accent-blue); }
+button.primary:hover, .button.primary:hover { background-color: #4583D8; border-color: #4583D8; }
+button.secondary, .button.secondary { background-color: var(--app-bg-elements); color: var(--app-text-primary); border-color: var(--app-border-secondary); }
+button.secondary:hover, .button.secondary:hover { background-color: var(--app-border-secondary); }
+button:disabled, .button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-button.primary, .button.primary {
-  background-color: var(--app-accent-blue);
-  color: var(--app-text-primary);
-  border-color: var(--app-accent-blue);
+input[type="text"], input[type="email"], input[type="password"],
+input[type="time"], input[type="date"], input[type="number"],
+textarea, select {
+  font-family: var(--font-family-base); background-color: var(--app-bg-elements);
+  color: var(--app-text-primary); border: 1px solid var(--app-border-primary);
+  padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;
 }
-button.primary:hover, .button.primary:hover {
-  background-color: #4583D8; /* Чуть светлее/темнее */
-  border-color: #4583D8;
-}
-
-button.secondary, .button.secondary {
-  background-color: var(--app-bg-elements);
-  color: var(--app-text-primary);
-  border-color: var(--app-border-secondary);
-}
-button.secondary:hover, .button.secondary:hover {
-  background-color: var(--app-border-secondary); /* Чуть темнее */
-}
-
-button:disabled, .button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+input[type="text"]::placeholder, input[type="email"]::placeholder, textarea::placeholder { color: var(--app-text-placeholder); }
+input[type="text"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
+  outline: none; border-color: var(--app-accent-blue);
+  box-shadow: 0 0 0 2px rgba(49, 109, 202, 0.3); /* Явный RGBa для --app-accent-blue */
 }
 
-/* Глобальные стили для инпутов */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="time"],
-input[type="date"],
-input[type="number"],
-textarea,
-select {
-  font-family: var(--font-family-base);
-  background-color: var(--app-bg-elements);
-  color: var(--app-text-primary);
-  border: 1px solid var(--app-border-primary);
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-input[type="text"]::placeholder,
-input[type="email"]::placeholder,
-  /* ... и для других инпутов ... */
-textarea::placeholder {
-  color: var(--app-text-placeholder);
-}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--app-accent-blue); margin-right: 8px; vertical-align: middle; }
+label { color: var(--app-text-secondary); font-size: 0.9rem; }
+label.checkbox-label-inline, label.radio-label-inline { display: inline-flex; align-items: center; margin-right: 15px; color: var(--app-text-primary); }
+fieldset { border: 1px solid var(--app-border-primary); border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+legend { font-weight: 600; padding: 0 10px; color: var(--app-text-primary); }
 
-input[type="text"]:focus,
-input[type="email"]:focus,
-  /* ... и для других инпутов ... */
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--app-accent-blue);
-  box-shadow: 0 0 0 2px rgba(var(--app-accent-blue), 0.3); /* Согласовать с цветом accent-blue */
-}
+.simple-modal-backdrop { /* ... как было ... */ }
+.simple-modal-content { /* ... как было ... */ }
+/* ... (остальные стили для simple-modal, если они были специфичны) ... */
 
-/* Стили для чекбоксов и радио (могут потребовать кастомной реализации для полного соответствия) */
-input[type="checkbox"], input[type="radio"] {
-  accent-color: var(--app-accent-blue); /* Простой способ стилизации для современных браузеров */
-  margin-right: 8px;
-  vertical-align: middle;
-}
-label {
-  color: var(--app-text-secondary);
-  font-size: 0.9rem;
-}
-label.checkbox-label-inline,
-label.radio-label-inline {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 15px;
-  color: var(--app-text-primary);
-}
-
-fieldset {
-  border: 1px solid var(--app-border-primary);
-  border-radius: 6px;
-  padding: 15px;
-  margin-bottom: 15px;
-}
-legend {
-  font-weight: 600;
-  padding: 0 10px;
-  color: var(--app-text-primary);
-}
-.simple-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1050;
-}
-
-.simple-modal-content {
-  background-color: var(--app-bg-elements);
-  padding: 25px 30px;
-  border-radius: 8px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-  min-width: 350px;
-  max-width: 90%;
-  border: 1px solid var(--app-border-secondary);
-  color: var(--app-text-primary);
-}
-
-.simple-modal-content h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: var(--app-text-primary);
-  font-size: 1.3rem;
-  font-weight: 600;
-}
-
-.simple-modal-content label {
-  display: block;
-  margin-top: 15px; /* Добавим отступ сверху для второго лейбла */
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: var(--app-text-secondary);
-  font-size: 0.9rem;
-}
-.simple-modal-content label:first-of-type {
-  margin-top: 0; /* Убираем верхний отступ у первого лейбла */
-}
-
-
-.simple-modal-content input[type="text"] {
-  width: 100%;
-  margin-bottom: 5px; /* Уменьшим нижний отступ, т.к. лейбл для цвета будет ниже */
-}
-
-/* Стили для контейнера выбора цвета */
-.color-picker-container {
+/* Категории в сайдбаре */
+.category-list-item {
   display: flex;
   align-items: center;
-  gap: 10px; /* Пространство между color input и превью */
-  margin-bottom: 25px; /* Отступ до кнопок */
+  position: relative;
 }
-
-.category-color-input {
-  -webkit-appearance: none; /* Убираем стандартный вид в WebKit */
-  -moz-appearance: none;
-  appearance: none;
-  width: 40px; /* Размер квадратика */
-  height: 40px;
-  background-color: transparent; /* Убираем фон, если он есть */
-  border: 1px solid var(--app-border-secondary); /* Граница как у других инпутов */
-  border-radius: 6px; /* Скругление */
-  cursor: pointer;
-  padding: 0; /* Убираем внутренние отступы, если они есть */
+.category-list-item .nav-link {
+  flex-grow: 1;
+  padding-right: 35px; /* Оставляем место для иконки мусорки */
 }
-
-/* Стилизация самого элемента выбора цвета (внутренней части) */
-.category-color-input::-webkit-color-swatch-wrapper {
-  padding: 0; /* Убираем отступы вокруг цветного квадрата в WebKit */
-  border-radius: 5px; /* Скругление для самого цвета внутри */
+.category-name-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
-.category-color-input::-webkit-color-swatch {
-  border: none; /* Убираем стандартную рамку цветного квадрата */
-  border-radius: 5px; /* Скругление для самого цвета */
-}
-
-/* Для Firefox */
-.category-color-input::-moz-color-swatch {
-  border: none;
-  border-radius: 5px;
-}
-/* Если нужно, можно добавить ::-moz-focus-inner для удаления пунктирной рамки при фокусе в Firefox */
-.category-color-input::-moz-focus-inner {
-  border: 0;
-  padding: 0;
-}
-
-
-.color-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  border: 1px solid var(--app-border-primary);
-  display: inline-block;
-}
-
-.simple-modal-content .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
-}
-
 .category-dot {
-  width: 10px;  /* Или другой подходящий размер */
-  height: 10px; /* Или другой подходящий размер */
-  border-radius: 50%; /* Делает его круглым */
-  margin-right: 10px; /* Отступ от текста категории */
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 10px;
   display: inline-block;
   flex-shrink: 0;
-  border: 1px solid rgba(0,0,0,0.1); /* Небольшая обводка для светлых цветов на светлом фоне (опционально) */
+  border: 1px solid rgba(0,0,0,0.1);
 }
-
-/* Стили для неактивного фильтра (если вы их используете) */
-.category-filter-link.disabled-filter .category-dot {
-  /* opacity: 0.4; /* Управляется через inline-стиль в JSX */
-}
-
 .category-filter-link.disabled-filter span:not(.category-dot) {
-  /* text-decoration: line-through; /* Управляется через inline-стиль в JSX */
-  /* opacity: 0.6; /* Управляется через inline-стиль в JSX */
   color: var(--app-text-placeholder);
+}
+
+/* Иконка удаления категории */
+.delete-category-icon {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out, visibility 0s linear 0.15s;
+  color: var(--app-text-secondary);
+  padding: 5px 8px; /* Кликабельная область */
+  border-radius: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9em; /* Размер эмодзи */
+}
+.category-list-item:hover .delete-category-icon {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+.delete-category-icon:hover {
+  color: var(--app-accent-red) !important; /* Важно, чтобы перебить цвет из IconPlaceholder */
+  background-color: rgba(218, 54, 51, 0.1);
+}
+
+
+/* Встроенная форма добавления категории */
+.add-category-form-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 6px 15px; /* Отступы: верх право низ лево */
+  border-left: 3px solid var(--app-accent-blue); /* Индикатор активного редактирования */
+  background-color: var(--app-bg-elements);
+  margin: 2px 0; /* Небольшой отступ от других элементов */
+}
+.add-category-input-group {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  margin-right: 8px;
+}
+.add-category-color-picker {
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  width: 24px; height: 24px; background-color: transparent;
+  border: 1px solid var(--app-border-secondary); border-radius: 4px;
+  cursor: pointer; padding: 0; margin-right: 8px;
+}
+.add-category-color-picker::-webkit-color-swatch-wrapper { padding: 2px; border-radius: 3px;}
+.add-category-color-picker::-webkit-color-swatch { border: none; border-radius: 2px;}
+.add-category-color-picker::-moz-color-swatch { border: none; border-radius: 2px;}
+.add-category-name-input {
+  flex-grow: 1;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  background-color: var(--app-bg-main); /* Немного другой фон для инпута */
+  border-color: var(--app-border-secondary);
+}
+.add-category-actions { display: flex; align-items: center; flex-shrink: 0; }
+.add-category-actions .icon-placeholder {
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 1em;
+  line-height: 1;
+  color: var(--app-text-secondary);
+}
+.add-category-actions .icon-placeholder:first-child { margin-right: 3px; }
+.add-category-actions .icon-placeholder[aria-label*="Check icon"]:hover {
+  color: var(--app-accent-green) !important; background-color: rgba(45, 164, 78, 0.1); }
+.add-category-actions .icon-placeholder[aria-label*="Cross icon"]:hover {
+  color: var(--app-accent-red) !important; background-color: rgba(218, 54, 51, 0.1); }
+.add-category-button { /* Для кнопки "+ Добавить категорию" */
+  /* Стили уже должны быть от .nav-link */
+}
+
+
+/* === CalendarComponent Стили (Calendar.css или сюда же) === */
+.calendar-page-container {
+  display: flex; flex-direction: column; height: 100%;
+  box-sizing: border-box; overflow-y: auto; /* Скролл для всей страницы календаря, если не помещается */
+}
+.calendar-page-header-wrapper {
+  display: flex; flex-direction: column;
+  padding-bottom: 10px;
+  flex-shrink: 0;
+  background-color: var(--app-bg-main); /* Фон для хедера, чтобы перекрывал календарь при скролле */
+  position: sticky; /* Приклеиваем хедер */
+  top: 0;
+  z-index: 10; /* Чтобы был над календарем */
+}
+.calendar-header-top-row, .calendar-header-bottom-row {
+  display: flex; align-items: center;
+  min-height: 38px; padding: 5px 0;
+}
+.calendar-header-top-row {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--app-border-secondary);
+  padding-bottom: 10px; margin-bottom: 5px; /* Уменьшил отступ */
+}
+.calendar-title-main { display: flex; align-items: center; }
+.calendar-title-main h1 {
+  font-size: 1.15rem; font-weight: 500; color: var(--app-text-primary);
+  margin: 0; white-space: nowrap;
+}
+.calendar-header-actions { display: flex; align-items: center; gap: 10px; }
+.calendar-header-actions .search-bar-container {
+  height: 32px; padding: 0 10px; background-color: var(--app-bg-elements);
+  border-radius: 6px; border: 1px solid var(--app-border-primary);
+}
+.calendar-header-actions .calendar-search-input { width: 130px; /* Немного уменьшил */ }
+.calendar-header-actions .button.iconic {
+  color: var(--app-text-secondary); font-size: 1rem; padding: 4px;
+  background-color: transparent; border: none;
+}
+.calendar-header-actions .button.iconic:hover { color: var(--app-text-primary); background-color: var(--app-bg-hover); }
+.action-divider { width: 1px; height: 16px; background-color: var(--app-border-secondary); margin: 0 5px; }
+
+.calendar-header-bottom-row { justify-content: space-between; padding-top: 0; } /* Убрал верхний отступ */
+.calendar-view-controls {
+  display: flex; align-items: center;
+  background-color: var(--app-bg-elements);
+  border-radius: 6px; padding: 3px;
+}
+.calendar-view-controls .button.view-btn {
+  margin: 0; padding: 5px 14px; border-radius: 4px; font-size: 0.8rem;
+  background-color: transparent; border: none; color: var(--app-text-secondary); font-weight: 500;
+}
+.calendar-view-controls .button.view-btn:hover { color: var(--app-text-primary); }
+.calendar-view-controls .button.view-btn.active-view {
+  background-color: var(--app-accent-blue); color: var(--app-text-primary);
+  /* box-shadow: 0 1px 3px rgba(0,0,0,0.1); */ /* Убрал тень для более плоского вида */
+}
+.calendar-nav-controls { display: flex; align-items: center; }
+.calendar-nav-controls .button {
+  margin: 0 3px; padding: 5px 10px; font-size: 0.85rem;
+  background-color: transparent; border: none; color: var(--app-text-secondary);
+}
+.calendar-nav-controls .button:hover { color: var(--app-text-primary); background-color: var(--app-bg-hover); }
+.calendar-nav-controls .button.today-btn { font-weight: 500; }
+.calendar-nav-controls .button.iconic.nav-arrow { font-size: 1rem; padding: 5px 8px; }
+
+.tui-calendar-container-customtheme {
+  /* height: 0;  Убрано, т.к. overflow-y на .calendar-page-container */
+  background-color: var(--app-bg-main);
+}
+
+/* Специфичные стили для TUI Calendar для темной темы */
+/* ... (как было, но убедитесь, что цвета соответствуют вашей палитре) ... */
+.tui-full-calendar-timegrid-hour { color: var(--app-text-secondary); }
+.tui-full-calendar-dayname-container {
+  color: var(--app-text-secondary); /* Сделал дни недели менее яркими */
+  background-color: var(--app-bg-main); /* Фон как у основного контента */
+  border-top: 1px solid var(--app-border-secondary) !important;
+  border-bottom: 1px solid var(--app-border-secondary) !important;
+  border-left: none !important; border-right: none !important;
+}
+.tui-full-calendar-month-dayname .tui-full-calendar-month-dayname-label { color: var(--app-text-secondary); }
+.tui-full-calendar-weekday-schedule-title, .tui-full-calendar-allday-schedule-block { color: var(--app-text-primary) !important; }
+.tui-full-calendar-timegrid-container, .tui-full-calendar-timegrid,
+.tui-full-calendar-month, .tui-full-calendar-weekday,
+.tui-full-calendar-daygrid-cell, .tui-full-calendar-timegrid-hour,
+.tui-full-calendar-timegrid- çizgileriv, .tui-full-calendar-grid-line,
+.tui-full-calendar-guide- हॉरिजॉन्टल { border-color: var(--app-border-secondary) !important; }
+.tui-full-calendar-grid-cell-date { color: var(--app-text-secondary); }
+.tui-full-calendar-grid-cell-date.tui-full-calendar-other-month { color: var(--app-text-placeholder); } /* Другой месяц */
+.tui-full-calendar-grid-cell-date.tui-full-calendar-today {
+  background-color: var(--app-accent-blue) !important; color: var(--app-text-primary) !important;
+  border-radius: 50%; width: 24px; height: 24px; line-height: 24px; display: inline-block; text-align: center;
+}
+.tui-full-calendar-daygrid-cell, .tui-full-calendar-timegrid-column { background-color: var(--app-bg-main); }
+.tui-full-calendar-timegrid-selection {
+  background-color: rgba(49, 109, 202, 0.2) !important; /* Уменьшил прозрачность */
+  border: 1px dashed var(--app-accent-blue) !important; /* Пунктирная рамка */
+}
+.tui-full-calendar-month-selection-bar {
+  background-color: rgba(49, 109, 202, 0.2) !important;
+  border: 1px dashed var(--app-accent-blue) !important;
+}
+
+/* Скрытие стандартного хедера TUI Calendar */
+.tui-full-calendar-header {
+  display: none !important;
 }

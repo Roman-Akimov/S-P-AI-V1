@@ -8,17 +8,37 @@ import RegistrationPage from './components/RegistrationPage';
 import OnboardingQuestionnairePage from './components/OnboardingQuestionnairePage';
 import './App.css';
 
-const IconPlaceholder = ({ name, size = "1em", style = {} }) => (
-    <span style={{ marginRight: '10px', fontSize: size, display: 'inline-block', ...style }} role="img" aria-label={`${name} icon`}>
+// Иконки (можно использовать react-icons)
+const IconPlaceholder = ({ name, size = "1em", style = {}, onClick, title, className }) => (
+    <span
+        className={className} // Добавляем возможность передавать класс
+        style={{
+            // marginRight по умолчанию убран, добавляем через style, где нужно
+            fontSize: size,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: onClick ? 'pointer' : 'default',
+            lineHeight: 1,
+            ...style
+        }}
+        role={onClick ? "button" : "img"}
+        aria-label={`${name} icon`}
+        onClick={onClick}
+        title={title}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyPress={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); }} : undefined}
+    >
         {name === 'Calendar' && '🗓️'}
         {name === 'AI' && '🤖'}
         {name === 'Profile' && '⚙️'}
         {name === 'Plus' && '+'}
-        {name === 'Inbox' && '📥'}
-        {name === 'Today' && '⭐'}
-        {name === 'Plans' && '📋'}
+        {name === 'Trash' && '🗑️'}
+        {name === 'Check' && '✔️'}
+        {name === 'Cross' && '❌'}
     </span>
 );
+
 
 const INITIAL_CATEGORIES = [
     { id: 'cat-1', name: 'Работа', color: 'var(--app-accent-purple)', checked: true },
@@ -45,8 +65,8 @@ const fileSystemApi = window.electronFs;
 if (!fileSystemApi) {
     console.error("App.js: Electron FS API ('electronFs') is not available.");
 }
-
 const DEFAULT_NEW_CATEGORY_COLOR = '#7D8590';
+
 
 function App() {
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
@@ -56,11 +76,11 @@ function App() {
     const [userCredentials, setUserCredentials] = useState(null);
     const [isAiConfigLoadedFromFile, setIsAiConfigLoadedFromFile] = useState(false);
 
-    const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
-    const [newCategoryData, setNewCategoryData] = useState({
-        name: '',
-        color: DEFAULT_NEW_CATEGORY_COLOR
-    });
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
+    const [newCategoryColorInput, setNewCategoryColorInput] = useState(DEFAULT_NEW_CATEGORY_COLOR);
+    const newCategoryNameInputRef = useRef(null);
+
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -89,7 +109,7 @@ function App() {
                 ]);
 
                 let initialCats = INITIAL_CATEGORIES;
-                if (loadedCategoriesData && Array.isArray(loadedCategoriesData)) { // Добавлена проверка на массив
+                if (loadedCategoriesData && Array.isArray(loadedCategoriesData)) {
                     initialCats = loadedCategoriesData.map(cat => ({
                         ...cat,
                         color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107')),
@@ -97,7 +117,7 @@ function App() {
                     }));
                 } else {
                     fileSystemApi.writeFile(CATEGORIES_FILENAME, INITIAL_CATEGORIES.map(c => ({...c, checked: true}))).catch(e => console.error("App: Error saving initial categories", e));
-                    initialCats = INITIAL_CATEGORIES.map(c => ({...c, checked: true})); // Убедимся, что checked есть
+                    initialCats = INITIAL_CATEGORIES.map(c => ({...c, checked: true}));
                 }
                 setCategories(initialCats);
 
@@ -109,7 +129,6 @@ function App() {
                     setAiConfig(INITIAL_AI_CONFIG);
                     setIsAiConfigLoadedFromFile(false);
                 }
-
             } catch (error) {
                 console.error('App: Failed to load data:', error);
                 setCategories(INITIAL_CATEGORIES.map(c => ({...c, checked: true})));
@@ -136,17 +155,15 @@ function App() {
             const updated = typeof newCategoriesOrUpdater === 'function'
                 ? newCategoriesOrUpdater(prevCategories)
                 : newCategoriesOrUpdater;
-
-            const finalCategories = updated.map(cat => ({
+            return updated.map(cat => ({
                 ...cat,
                 color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107')),
                 checked: cat.checked !== undefined ? cat.checked : true
             }));
-            return finalCategories;
         });
     }, []);
 
-    const toggleCategoryFilter = useCallback((categoryIdToToggle) => {
+    const handleToggleCategoryFilter = useCallback((categoryIdToToggle) => {
         setCategories(prevCategories =>
             prevCategories.map(cat =>
                 cat.id === categoryIdToToggle ? { ...cat, checked: !cat.checked } : cat
@@ -154,65 +171,69 @@ function App() {
         );
     }, []);
 
-    const openAddCategoryModal = () => {
-        setNewCategoryData({ name: '', color: DEFAULT_NEW_CATEGORY_COLOR });
-        setIsAddCategoryModalOpen(true);
+    const handleDeleteCategory = useCallback((categoryIdToDelete) => {
+        if (window.confirm("Вы уверены, что хотите удалить эту категорию? Все связанные задачи будут помечены как 'Без категории'.")) {
+            setCategories(prev => prev.filter(cat => cat.id !== categoryIdToDelete));
+            setSchedules(prev =>
+                prev.map(sch =>
+                    sch.categoryId === categoryIdToDelete ? { ...sch, categoryId: null } : sch
+                )
+            );
+        }
+    }, []);
+
+    const startAddingCategory = () => {
+        setIsAddingCategory(true);
+        setNewCategoryNameInput('');
+        setNewCategoryColorInput(DEFAULT_NEW_CATEGORY_COLOR);
     };
-    const closeAddCategoryModal = () => {
-        setIsAddCategoryModalOpen(false);
-    };
-    const handleNewCategoryDataChange = (e) => {
-        const { name, value } = e.target;
-        setNewCategoryData(prev => ({ ...prev, [name]: value }));
-    };
-    const handleConfirmAddCategory = () => {
-        const trimmedName = newCategoryData.name.trim();
-        if (trimmedName === "") {
+
+    useEffect(() => {
+        if (isAddingCategory && newCategoryNameInputRef.current) {
+            newCategoryNameInputRef.current.focus();
+        }
+    }, [isAddingCategory]);
+
+    const handleSaveNewCategory = () => {
+        const trimmedName = newCategoryNameInput.trim();
+        if (!trimmedName) {
             alert("Название категории не может быть пустым.");
+            newCategoryNameInputRef.current?.focus();
             return;
         }
         const newCategory = {
             id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             name: trimmedName,
-            color: newCategoryData.color,
+            color: newCategoryColorInput,
             checked: true,
         };
-        updateCategories(prevCategories => [...prevCategories, newCategory]);
-        closeAddCategoryModal();
+        updateCategories(prev => [...prev, newCategory]);
+        setIsAddingCategory(false);
+        setNewCategoryNameInput('');
+        setNewCategoryColorInput(DEFAULT_NEW_CATEGORY_COLOR);
+    };
+
+    const handleCancelAddNewCategory = () => {
+        setIsAddingCategory(false);
+        setNewCategoryNameInput('');
+        setNewCategoryColorInput(DEFAULT_NEW_CATEGORY_COLOR);
     };
 
     const updateAiConfig = useCallback((newAiConfigOrUpdater) => {
         setAiConfig(prevAiConfig => {
-            const updatedConfig = typeof newAiConfigOrUpdater === 'function'
-                ? newAiConfigOrUpdater(prevAiConfig)
-                : newAiConfigOrUpdater;
+            const updatedConfig = typeof newAiConfigOrUpdater === 'function' ? newAiConfigOrUpdater(prevAiConfig) : newAiConfigOrUpdater;
             let isDifferentFromInitial = false;
             if (updatedConfig) {
-                for (const key in INITIAL_AI_CONFIG) {
-                    if (JSON.stringify(updatedConfig[key]) !== JSON.stringify(INITIAL_AI_CONFIG[key])) {
-                        isDifferentFromInitial = true;
-                        break;
-                    }
-                }
-                for (const key in updatedConfig) {
-                    if (!INITIAL_AI_CONFIG.hasOwnProperty(key)) {
-                        isDifferentFromInitial = true;
-                        break;
-                    }
-                }
+                for (const key in INITIAL_AI_CONFIG) { if (JSON.stringify(updatedConfig[key]) !== JSON.stringify(INITIAL_AI_CONFIG[key])) { isDifferentFromInitial = true; break; } }
+                for (const key in updatedConfig) { if (!INITIAL_AI_CONFIG.hasOwnProperty(key)) { isDifferentFromInitial = true; break; } }
             }
-            if (isDifferentFromInitial) {
-                setIsAiConfigLoadedFromFile(true);
-            }
+            if (isDifferentFromInitial) { setIsAiConfigLoadedFromFile(true); }
             return updatedConfig;
         });
     }, []);
 
     const handleAddSchedules = useCallback((newSchedulesToAdd) => {
-        if (!Array.isArray(newSchedulesToAdd)) {
-            console.error("App: handleAddSchedules ожидал массив, получил:", newSchedulesToAdd);
-            return;
-        }
+        if (!Array.isArray(newSchedulesToAdd)) { console.error("App: handleAddSchedules ожидал массив"); return; }
         if (newSchedulesToAdd.length === 0) return;
         setSchedules(prevSchedules => {
             const existingIds = new Set(prevSchedules.map(s => s.id));
@@ -223,30 +244,21 @@ function App() {
 
     useEffect(() => {
         if (isLoadingData || !fileSystemApi) return;
-        fileSystemApi.writeFile(CATEGORIES_FILENAME, categories)
-            .catch(error => console.error('App: Failed to save categories:', error));
+        fileSystemApi.writeFile(CATEGORIES_FILENAME, categories).catch(e => console.error('App: Failed to save categories:', e));
     }, [categories, isLoadingData]);
-
     useEffect(() => {
         if (isLoadingData || !fileSystemApi) return;
-        fileSystemApi.writeFile(SCHEDULES_FILENAME, schedules)
-            .catch(error => console.error('App: Failed to save schedules:', error));
+        fileSystemApi.writeFile(SCHEDULES_FILENAME, schedules).catch(e => console.error('App: Failed to save schedules:', e));
     }, [schedules, isLoadingData]);
-
     useEffect(() => {
-        if (isLoadingData || !fileSystemApi || !isAiConfigLoadedFromFile) {
-            return;
-        }
-        fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, aiConfig)
-            .catch(error => console.error('App: Failed to save AI config:', error));
+        if (isLoadingData || !fileSystemApi || !isAiConfigLoadedFromFile) return;
+        fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, aiConfig).catch(e => console.error('App: Failed to save AI config:', e));
     }, [aiConfig, isLoadingData, isAiConfigLoadedFromFile]);
 
     const handleRegistration = async (credentials) => {
         if (!fileSystemApi) { alert("Ошибка: Файловая система недоступна."); return; }
-        try {
-            await fileSystemApi.writeFile(USER_CREDENTIALS_FILENAME, credentials);
-            setUserCredentials(credentials);
-        } catch (error) { console.error("App: Failed to save user credentials", error); alert("Ошибка при сохранении данных регистрации."); }
+        try { await fileSystemApi.writeFile(USER_CREDENTIALS_FILENAME, credentials); setUserCredentials(credentials); }
+        catch (error) { console.error("App: Failed to save user credentials", error); alert("Ошибка при сохранении данных регистрации."); }
     };
     const handleOnboardingComplete = async (newAiConfig) => {
         if (!fileSystemApi) { alert("Ошибка: Файловая система недоступна."); return; }
@@ -254,84 +266,85 @@ function App() {
     };
 
     if (isLoadingData) { return <div className="loading-indicator">Загрузка данных...</div>; }
-    if (!fileSystemApi && !isLoadingData) { return (<div className="app-error"><h1>Ошибка приложения</h1><p>...</p></div>); }
+    if (!fileSystemApi && !isLoadingData) { return (<div className="app-error"><h1>Ошибка приложения</h1><p>Файловая система недоступна. Убедитесь, что приложение запущено корректно.</p></div>); }
     if (!userCredentials) { return <RegistrationPage onRegister={handleRegistration} />; }
     if (!isAiConfigLoadedFromFile) { return (<OnboardingQuestionnairePage initialConfig={aiConfig} onComplete={handleOnboardingComplete} userName={userCredentials.name} />); }
 
     const activeCategoryIds = categories.filter(cat => cat.checked).map(cat => cat.id);
-    // Если все категории НЕ выбраны (т.е. activeCategoryIds пуст), но категории есть,
-    // то для TUI это будет означать, что нужно скрыть ВСЕ категории.
-    // Если же мы хотим, чтобы "пустой фильтр" означал "показать все", то activeCategoryIds нужно передавать иначе.
-    // Текущая логика CalendarComponent: если activeCategoryFilters пуст, он показывает всё.
-    // Поэтому, если categories.length > 0 и activeCategoryIds.length === 0, то все будет скрыто.
-    // Если categories.length === 0, то activeCategoryIds будет пуст, и календарь покажет только 'default'.
-
-    // Для соответствия логике CalendarComponent:
-    // Если НИ ОДНА категория не активна, но категории существуют, передаем специальный маркер или пустой массив,
-    // который CalendarComponent интерпретирует как "скрыть все именованные категории".
-    // Если ВСЕ категории активны, можно передать undefined или массив всех ID, чтобы CalendarComponent показал все.
-    // Текущий `activeCategoryIds` как раз подходит для CalendarComponent, если тот интерпретирует пустой массив как "показать только 'default', если он не отфильтрован".
-    // Но в CalendarComponent мы сделали: если activeCategoryFilters пуст (undefined или []), то показывать все.
-    // Значит, если пользователь отжал ВСЕ галочки, activeCategoryIds будет [], и CalendarComponent покажет ВСЁ.
-    // Это может быть не тем, что ожидается.
-    // Чтобы исправить: если activeCategoryIds пуст, НО категории существуют, значит пользователь все отфильтровал.
-
-    let filtersForCalendar = activeCategoryIds;
-    if (categories.length > 0 && activeCategoryIds.length === 0) {
-        // Все категории существуют, но ни одна не выбрана -> передаем массив, который не будет содержать ни одного ID категорий
-        // (даже 'default', если мы не хотим его показывать в этом случае).
-        // TUI скроет все, что не 'default'. 'default' скроется, если не в activeCategoryIds.
-        // Чтобы явно скрыть всё, включая 'default', можно передать ['__ HIDE_ALL__'] и обработать в CalendarComponent.
-        // Проще: CalendarComponent УЖЕ обрабатывает пустой activeCategoryFilters как "показать все".
-        // Нам нужно, чтобы если activeCategoryIds пуст И categories.length > 0, то CalendarComponent скрыл ВСЕ категории.
-        // А если activeCategoryIds содержит ID, то только их.
-        // Передаем как есть, CalendarComponent разберется.
-    }
-
+    // Передаем activeCategoryIds напрямую, CalendarComponent уже обрабатывает пустой массив как "показать все"
+    // или показывает только выбранные, если массив не пуст.
+    const filtersForCalendar = activeCategoryIds;
 
     return (
         <Router>
             <div className="app-container">
                 <nav className="app-sidebar">
-                    <div className="sidebar-brand">Календарь PRO</div>
+                    <div className="sidebar-brand">
+                        <span className="sidebar-brand-icon"></span>
+                        Календарь PRO
+                    </div>
                     <ul className="sidebar-main-nav">
-                        <li><NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Calendar" /> Календарь</NavLink></li>
-                        <li><NavLink to="/ai" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="AI" /> AI Ассистент</NavLink></li>
+                        <li><NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Calendar" style={{ marginRight: '8px' }} /> Календарь</NavLink></li>
+                        <li><NavLink to="/ai" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="AI" style={{ marginRight: '8px' }} /> AI Ассистент</NavLink></li>
                     </ul>
 
                     <div className="sidebar-section-title">Мои категории</div>
                     <ul className="sidebar-projects-nav">
                         {categories.map(category => (
-                            <li key={category.id} title={category.checked ? "Скрыть задачи этой категории" : "Показать задачи этой категории"}>
+                            <li key={category.id} className="category-list-item">
                                 <a
                                     href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        toggleCategoryFilter(category.id);
-                                    }}
+                                    onClick={(e) => { e.preventDefault(); handleToggleCategoryFilter(category.id); }}
                                     className={`nav-link category-filter-link ${!category.checked ? 'disabled-filter' : ''}`}
+                                    title={category.checked ? "Скрыть задачи этой категории" : "Показать задачи этой категории"}
                                 >
-                                    <span
-                                        className="category-dot"
-                                        style={{
-                                            backgroundColor: category.color,
-                                            opacity: category.checked ? 1 : 0.4
-                                        }}
-                                    ></span>
-                                    <span style={{ textDecoration: !category.checked ? 'line-through' : 'none', opacity: category.checked ? 1 : 0.7 }}>
+                                    <span className="category-dot" style={{ backgroundColor: category.color, opacity: category.checked ? 1 : 0.4 }} />
+                                    <span className="category-name-text" style={{ textDecoration: !category.checked ? 'line-through' : 'none', opacity: category.checked ? 1 : 0.7 }}>
                                         {category.name}
                                     </span>
                                 </a>
+                                <IconPlaceholder
+                                    name="Trash"
+                                    className="delete-category-icon"
+                                    onClick={() => handleDeleteCategory(category.id)}
+                                    title="Удалить категорию"
+                                />
                             </li>
                         ))}
-                        <li>
-                            <a href="#" onClick={(e) => { e.preventDefault(); openAddCategoryModal(); }} className="nav-link" >
-                                <IconPlaceholder name="Plus" /> Новая категория
-                            </a>
-                        </li>
+                        {isAddingCategory ? (
+                            <li className="add-category-form-item">
+                                <div className="add-category-input-group">
+                                    <input
+                                        type="color"
+                                        value={newCategoryColorInput}
+                                        onChange={(e) => setNewCategoryColorInput(e.target.value)}
+                                        className="add-category-color-picker"
+                                    />
+                                    <input
+                                        ref={newCategoryNameInputRef}
+                                        type="text"
+                                        placeholder="Название категории"
+                                        value={newCategoryNameInput}
+                                        onChange={(e) => setNewCategoryNameInput(e.target.value)}
+                                        onKeyPress={(e) => {if (e.key === 'Enter') handleSaveNewCategory(); if (e.key === 'Escape') handleCancelAddNewCategory();}}
+                                        className="add-category-name-input"
+                                    />
+                                </div>
+                                <div className="add-category-actions">
+                                    <IconPlaceholder name="Check" onClick={handleSaveNewCategory} title="Сохранить" style={{marginRight: '5px'}}/>
+                                    <IconPlaceholder name="Cross" onClick={handleCancelAddNewCategory} title="Отмена"/>
+                                </div>
+                            </li>
+                        ) : (
+                            <li>
+                                <a href="#" onClick={(e) => { e.preventDefault(); startAddingCategory(); }} className="nav-link add-category-button">
+                                    <IconPlaceholder name="Plus" style={{ marginRight: '8px' }}/> Добавить категорию
+                                </a>
+                            </li>
+                        )}
                     </ul>
                     <ul className="sidebar-footer-nav">
-                        <li><NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Profile" /> Профиль</NavLink></li>
+                        <li><NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Profile" style={{ marginRight: '8px' }}/> Профиль</NavLink></li>
                     </ul>
                 </nav>
 
@@ -339,14 +352,7 @@ function App() {
                     <Routes>
                         <Route
                             path="/"
-                            element={
-                                <CalendarComponent
-                                    allCategories={categories}
-                                    schedules={schedules}
-                                    onSchedulesChange={updateSchedules}
-                                    activeCategoryFilters={filtersForCalendar}
-                                />
-                            }
+                            element={ <CalendarComponent allCategories={categories} schedules={schedules} onSchedulesChange={updateSchedules} activeCategoryFilters={filtersForCalendar} /> }
                         />
                         <Route
                             path="/profile"
@@ -360,25 +366,6 @@ function App() {
                     </Routes>
                 </main>
             </div>
-
-            {isAddCategoryModalOpen && (
-                <div className="modal-backdrop simple-modal-backdrop">
-                    <div className="modal-content simple-modal-content">
-                        <h3>Новая категория</h3>
-                        <label htmlFor="newCategoryNameInput">Название категории:</label>
-                        <input type="text" id="newCategoryNameInput" name="name" value={newCategoryData.name} onChange={handleNewCategoryDataChange} autoFocus />
-                        <label htmlFor="newCategoryColorInput">Цвет категории:</label>
-                        <div className="color-picker-container">
-                            <input type="color" id="newCategoryColorInput" name="color" value={newCategoryData.color} onChange={handleNewCategoryDataChange} className="category-color-input" />
-                            <span className="color-preview" style={{ backgroundColor: newCategoryData.color }}></span>
-                        </div>
-                        <div className="modal-actions">
-                            <button type="button" onClick={handleConfirmAddCategory} className="button primary">Добавить</button>
-                            <button type="button" onClick={closeAddCategoryModal} className="button secondary">Отмена</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </Router>
     );
 }
