@@ -255,3 +255,131 @@ legend {
   padding: 0 10px;
   color: var(--app-text-primary);
 }
+.simple-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+
+.simple-modal-content {
+  background-color: var(--app-bg-elements);
+  padding: 25px 30px;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  min-width: 350px;
+  max-width: 90%;
+  border: 1px solid var(--app-border-secondary);
+  color: var(--app-text-primary);
+}
+
+.simple-modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--app-text-primary);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.simple-modal-content label {
+  display: block;
+  margin-top: 15px; /* Добавим отступ сверху для второго лейбла */
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  font-size: 0.9rem;
+}
+.simple-modal-content label:first-of-type {
+  margin-top: 0; /* Убираем верхний отступ у первого лейбла */
+}
+
+
+.simple-modal-content input[type="text"] {
+  width: 100%;
+  margin-bottom: 5px; /* Уменьшим нижний отступ, т.к. лейбл для цвета будет ниже */
+}
+
+/* Стили для контейнера выбора цвета */
+.color-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Пространство между color input и превью */
+  margin-bottom: 25px; /* Отступ до кнопок */
+}
+
+.category-color-input {
+  -webkit-appearance: none; /* Убираем стандартный вид в WebKit */
+  -moz-appearance: none;
+  appearance: none;
+  width: 40px; /* Размер квадратика */
+  height: 40px;
+  background-color: transparent; /* Убираем фон, если он есть */
+  border: 1px solid var(--app-border-secondary); /* Граница как у других инпутов */
+  border-radius: 6px; /* Скругление */
+  cursor: pointer;
+  padding: 0; /* Убираем внутренние отступы, если они есть */
+}
+
+/* Стилизация самого элемента выбора цвета (внутренней части) */
+.category-color-input::-webkit-color-swatch-wrapper {
+  padding: 0; /* Убираем отступы вокруг цветного квадрата в WebKit */
+  border-radius: 5px; /* Скругление для самого цвета внутри */
+}
+.category-color-input::-webkit-color-swatch {
+  border: none; /* Убираем стандартную рамку цветного квадрата */
+  border-radius: 5px; /* Скругление для самого цвета */
+}
+
+/* Для Firefox */
+.category-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 5px;
+}
+/* Если нужно, можно добавить ::-moz-focus-inner для удаления пунктирной рамки при фокусе в Firefox */
+.category-color-input::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
+
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--app-border-primary);
+  display: inline-block;
+}
+
+.simple-modal-content .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.category-dot {
+  width: 10px;  /* Или другой подходящий размер */
+  height: 10px; /* Или другой подходящий размер */
+  border-radius: 50%; /* Делает его круглым */
+  margin-right: 10px; /* Отступ от текста категории */
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.1); /* Небольшая обводка для светлых цветов на светлом фоне (опционально) */
+}
+
+/* Стили для неактивного фильтра (если вы их используете) */
+.category-filter-link.disabled-filter .category-dot {
+  /* opacity: 0.4; /* Управляется через inline-стиль в JSX */
+}
+
+.category-filter-link.disabled-filter span:not(.category-dot) {
+  /* text-decoration: line-through; /* Управляется через inline-стиль в JSX */
+  /* opacity: 0.6; /* Управляется через inline-стиль в JSX */
+  color: var(--app-text-placeholder);
+}

@@ -1,5 +1,5 @@
 // app.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import CalendarComponent from './components/Calendar';
 import UserProfile from './components/UserProfile';
@@ -8,13 +8,8 @@ import RegistrationPage from './components/RegistrationPage';
 import OnboardingQuestionnairePage from './components/OnboardingQuestionnairePage';
 import './App.css';
 
-// --- Иконки (замените на реальные SVG или из библиотеки, например, React Icons) ---
-// Просто для примера, как можно было бы их вставить.
-// import { FiGrid, FiCpu, FiUser, FiPlusCircle, FiArchive, FiInbox, FiStar, FiCalendar, FiSettings } from 'react-icons/fi';
-
 const IconPlaceholder = ({ name, size = "1em", style = {} }) => (
     <span style={{ marginRight: '10px', fontSize: size, display: 'inline-block', ...style }} role="img" aria-label={`${name} icon`}>
-        {/* Можно использовать SVG или символ. Для примера: */}
         {name === 'Calendar' && '🗓️'}
         {name === 'AI' && '🤖'}
         {name === 'Profile' && '⚙️'}
@@ -25,38 +20,24 @@ const IconPlaceholder = ({ name, size = "1em", style = {} }) => (
     </span>
 );
 
-
-// --- Начальные данные и константы ---
 const INITIAL_CATEGORIES = [
-    { id: 'cat-1', name: 'Работа', color: 'var(--app-accent-purple)', checked: true }, // Используем CSS переменные для цвета по умолчанию
+    { id: 'cat-1', name: 'Работа', color: 'var(--app-accent-purple)', checked: true },
     { id: 'cat-2', name: 'Личное', color: 'var(--app-accent-teal)', checked: true },
-    { id: 'cat-3', name: 'Учеба', color: '#ffc107', checked: true }, // Можно оставить HEX или тоже заменить
+    { id: 'cat-3', name: 'Учеба', color: '#ffc107', checked: true },
 ];
 const CATEGORIES_FILENAME = 'categories.json';
 const SCHEDULES_FILENAME = 'schedules.json';
 const PROFILE_CONFIG_FILENAME = 'profileConfig.json';
 const USER_CREDENTIALS_FILENAME = 'userCredentials.json';
 
-// --- Начальная структура анкеты ИИ (без изменений) ---
 const INITIAL_AI_CONFIG = {
-    workStartTime: '09:00',
-    workEndTime: '18:00',
-    preferredWorkDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-    taskChunkingMinutes: 90,
-    breakMinutes: 15,
+    workStartTime: '09:00', workEndTime: '18:00', preferredWorkDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    taskChunkingMinutes: 90, breakMinutes: 15,
     energyLevelByDayTime: { morning: 4, afternoon: 3, evening: 2, night: 1 },
     priorityWeights: { High: 3, Medium: 2, Low: 1, deadlineProximityDays: 3 },
-    occupation: '',
-    workScheduleText: '',
-    commuteDistance: '',
-    transportMode: '',
-    peakProductivityTime: '',
-    workStylePreference: 'с перерывами',
-    readingSpeed: '',
-    typingSpeed: '',
-    concentrationLevel: 7,
-    personalityType: '',
-    educationBackground: '',
+    occupation: '', workScheduleText: '', commuteDistance: '', transportMode: '',
+    peakProductivityTime: '', workStylePreference: 'с перерывами', readingSpeed: '',
+    typingSpeed: '', concentrationLevel: 7, personalityType: '', educationBackground: '',
     personalPreferencesNotes: '',
 };
 
@@ -64,6 +45,8 @@ const fileSystemApi = window.electronFs;
 if (!fileSystemApi) {
     console.error("App.js: Electron FS API ('electronFs') is not available.");
 }
+
+const DEFAULT_NEW_CATEGORY_COLOR = '#7D8590';
 
 function App() {
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
@@ -73,12 +56,17 @@ function App() {
     const [userCredentials, setUserCredentials] = useState(null);
     const [isAiConfigLoadedFromFile, setIsAiConfigLoadedFromFile] = useState(false);
 
-    // useEffect для загрузки данных (без изменений)
+    const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+    const [newCategoryData, setNewCategoryData] = useState({
+        name: '',
+        color: DEFAULT_NEW_CATEGORY_COLOR
+    });
+
     useEffect(() => {
         const loadInitialData = async () => {
             if (!fileSystemApi) {
                 setIsLoadingData(false);
-                setCategories(INITIAL_CATEGORIES);
+                setCategories(INITIAL_CATEGORIES.map(c => ({...c, checked: c.checked !== undefined ? c.checked : true})));
                 setSchedules([]);
                 setAiConfig(INITIAL_AI_CONFIG);
                 setUserCredentials(null);
@@ -87,37 +75,33 @@ function App() {
                 return;
             }
             setIsLoadingData(true);
-            console.log('App: Loading all data...');
             try {
                 await fileSystemApi.ensureDataDir();
-
                 const loadedCredentials = await fileSystemApi.readFile(USER_CREDENTIALS_FILENAME);
                 if (loadedCredentials && loadedCredentials.name && loadedCredentials.email) {
                     setUserCredentials(loadedCredentials);
-                } else {
-                    setUserCredentials(null);
-                }
+                } else { setUserCredentials(null); }
 
-                const [loadedCategories, loadedSchedules, loadedProfileConfig] = await Promise.all([
+                const [loadedCategoriesData, loadedSchedules, loadedProfileConfig] = await Promise.all([
                     fileSystemApi.readFile(CATEGORIES_FILENAME),
                     fileSystemApi.readFile(SCHEDULES_FILENAME),
                     fileSystemApi.readFile(PROFILE_CONFIG_FILENAME)
                 ]);
 
-                if (loadedCategories) {
-                    // Применяем цвета из CSS переменных, если сохраненные категории их не имеют
-                    const updatedCategories = loadedCategories.map(cat => ({
+                let initialCats = INITIAL_CATEGORIES;
+                if (loadedCategoriesData && Array.isArray(loadedCategoriesData)) { // Добавлена проверка на массив
+                    initialCats = loadedCategoriesData.map(cat => ({
                         ...cat,
-                        color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107'))
+                        color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107')),
+                        checked: cat.checked !== undefined ? cat.checked : true
                     }));
-                    setCategories(updatedCategories);
                 } else {
-                    setCategories(INITIAL_CATEGORIES);
-                    fileSystemApi.writeFile(CATEGORIES_FILENAME, INITIAL_CATEGORIES).catch(e => console.error("App: Error saving initial categories", e));
+                    fileSystemApi.writeFile(CATEGORIES_FILENAME, INITIAL_CATEGORIES.map(c => ({...c, checked: true}))).catch(e => console.error("App: Error saving initial categories", e));
+                    initialCats = INITIAL_CATEGORIES.map(c => ({...c, checked: true})); // Убедимся, что checked есть
                 }
+                setCategories(initialCats);
 
                 setSchedules(loadedSchedules || []);
-
                 if (loadedProfileConfig) {
                     setAiConfig(prev => ({ ...INITIAL_AI_CONFIG, ...loadedProfileConfig }));
                     setIsAiConfigLoadedFromFile(true);
@@ -128,20 +112,17 @@ function App() {
 
             } catch (error) {
                 console.error('App: Failed to load data:', error);
-                setCategories(INITIAL_CATEGORIES);
+                setCategories(INITIAL_CATEGORIES.map(c => ({...c, checked: true})));
                 setSchedules([]);
                 setAiConfig(INITIAL_AI_CONFIG);
                 setUserCredentials(null);
                 setIsAiConfigLoadedFromFile(false);
-            } finally {
-                setIsLoadingData(false);
-                console.log('App: Data loading finished.');
             }
+            finally { setIsLoadingData(false); }
         };
         loadInitialData();
     }, []);
 
-    // --- Функции для обновления состояния (без изменений) ---
     const updateSchedules = useCallback((newSchedulesOrUpdater) => {
         setSchedules(prevSchedules =>
             typeof newSchedulesOrUpdater === 'function'
@@ -155,20 +136,72 @@ function App() {
             const updated = typeof newCategoriesOrUpdater === 'function'
                 ? newCategoriesOrUpdater(prevCategories)
                 : newCategoriesOrUpdater;
-            // Обновляем цвета, если их нет или они не CSS переменные
-            return updated.map(cat => ({
+
+            const finalCategories = updated.map(cat => ({
                 ...cat,
-                color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107'))
+                color: cat.color || (cat.name === 'Работа' ? 'var(--app-accent-purple)' : (cat.name === 'Личное' ? 'var(--app-accent-teal)' : '#ffc107')),
+                checked: cat.checked !== undefined ? cat.checked : true
             }));
+            return finalCategories;
         });
     }, []);
+
+    const toggleCategoryFilter = useCallback((categoryIdToToggle) => {
+        setCategories(prevCategories =>
+            prevCategories.map(cat =>
+                cat.id === categoryIdToToggle ? { ...cat, checked: !cat.checked } : cat
+            )
+        );
+    }, []);
+
+    const openAddCategoryModal = () => {
+        setNewCategoryData({ name: '', color: DEFAULT_NEW_CATEGORY_COLOR });
+        setIsAddCategoryModalOpen(true);
+    };
+    const closeAddCategoryModal = () => {
+        setIsAddCategoryModalOpen(false);
+    };
+    const handleNewCategoryDataChange = (e) => {
+        const { name, value } = e.target;
+        setNewCategoryData(prev => ({ ...prev, [name]: value }));
+    };
+    const handleConfirmAddCategory = () => {
+        const trimmedName = newCategoryData.name.trim();
+        if (trimmedName === "") {
+            alert("Название категории не может быть пустым.");
+            return;
+        }
+        const newCategory = {
+            id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            name: trimmedName,
+            color: newCategoryData.color,
+            checked: true,
+        };
+        updateCategories(prevCategories => [...prevCategories, newCategory]);
+        closeAddCategoryModal();
+    };
 
     const updateAiConfig = useCallback((newAiConfigOrUpdater) => {
         setAiConfig(prevAiConfig => {
             const updatedConfig = typeof newAiConfigOrUpdater === 'function'
                 ? newAiConfigOrUpdater(prevAiConfig)
                 : newAiConfigOrUpdater;
-            if (JSON.stringify(updatedConfig) !== JSON.stringify(INITIAL_AI_CONFIG)) {
+            let isDifferentFromInitial = false;
+            if (updatedConfig) {
+                for (const key in INITIAL_AI_CONFIG) {
+                    if (JSON.stringify(updatedConfig[key]) !== JSON.stringify(INITIAL_AI_CONFIG[key])) {
+                        isDifferentFromInitial = true;
+                        break;
+                    }
+                }
+                for (const key in updatedConfig) {
+                    if (!INITIAL_AI_CONFIG.hasOwnProperty(key)) {
+                        isDifferentFromInitial = true;
+                        break;
+                    }
+                }
+            }
+            if (isDifferentFromInitial) {
                 setIsAiConfigLoadedFromFile(true);
             }
             return updatedConfig;
@@ -181,10 +214,13 @@ function App() {
             return;
         }
         if (newSchedulesToAdd.length === 0) return;
-        setSchedules(prevSchedules => [...prevSchedules, ...newSchedulesToAdd]);
+        setSchedules(prevSchedules => {
+            const existingIds = new Set(prevSchedules.map(s => s.id));
+            const uniqueNewSchedules = newSchedulesToAdd.filter(s => !existingIds.has(s.id));
+            return [...prevSchedules, ...uniqueNewSchedules];
+        });
     }, []);
 
-    // --- Эффекты для СОХРАНЕНИЯ данных (без изменений) ---
     useEffect(() => {
         if (isLoadingData || !fileSystemApi) return;
         fileSystemApi.writeFile(CATEGORIES_FILENAME, categories)
@@ -199,145 +235,103 @@ function App() {
 
     useEffect(() => {
         if (isLoadingData || !fileSystemApi || !isAiConfigLoadedFromFile) {
-            if (!isAiConfigLoadedFromFile && !isLoadingData) {
-                // console.log('App: AI config is initial or not loaded from file, skipping save.');
-            }
             return;
         }
         fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, aiConfig)
             .catch(error => console.error('App: Failed to save AI config:', error));
     }, [aiConfig, isLoadingData, isAiConfigLoadedFromFile]);
 
-    // --- Обработчики для регистрации и онбординга (без изменений) ---
     const handleRegistration = async (credentials) => {
-        if (!fileSystemApi) {
-            alert("Ошибка: Файловая система недоступна. Невозможно зарегистрироваться.");
-            return;
-        }
+        if (!fileSystemApi) { alert("Ошибка: Файловая система недоступна."); return; }
         try {
             await fileSystemApi.writeFile(USER_CREDENTIALS_FILENAME, credentials);
             setUserCredentials(credentials);
-        } catch (error) {
-            console.error("App: Failed to save user credentials", error);
-            alert("Ошибка при сохранении данных регистрации.");
-        }
+        } catch (error) { console.error("App: Failed to save user credentials", error); alert("Ошибка при сохранении данных регистрации."); }
     };
-
     const handleOnboardingComplete = async (newAiConfig) => {
-        if (!fileSystemApi) {
-            alert("Ошибка: Файловая система недоступна. Невозможно сохранить настройки.");
-            return;
-        }
-        try {
-            setAiConfig(newAiConfig);
-            setIsAiConfigLoadedFromFile(true);
-            await fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, newAiConfig);
-            alert("Настройка AI-ассистента завершена!");
-        } catch (error) {
-            console.error("App: Failed to save AI config during onboarding", error);
-            alert("Ошибка при сохранении настроек AI-ассистента.");
-        }
+        if (!fileSystemApi) { alert("Ошибка: Файловая система недоступна."); return; }
+        updateAiConfig(newAiConfig);
     };
 
-    // --- Логика рендеринга ---
-    if (isLoadingData) {
-        return <div className="loading-indicator">Загрузка данных...</div>;
+    if (isLoadingData) { return <div className="loading-indicator">Загрузка данных...</div>; }
+    if (!fileSystemApi && !isLoadingData) { return (<div className="app-error"><h1>Ошибка приложения</h1><p>...</p></div>); }
+    if (!userCredentials) { return <RegistrationPage onRegister={handleRegistration} />; }
+    if (!isAiConfigLoadedFromFile) { return (<OnboardingQuestionnairePage initialConfig={aiConfig} onComplete={handleOnboardingComplete} userName={userCredentials.name} />); }
+
+    const activeCategoryIds = categories.filter(cat => cat.checked).map(cat => cat.id);
+    // Если все категории НЕ выбраны (т.е. activeCategoryIds пуст), но категории есть,
+    // то для TUI это будет означать, что нужно скрыть ВСЕ категории.
+    // Если же мы хотим, чтобы "пустой фильтр" означал "показать все", то activeCategoryIds нужно передавать иначе.
+    // Текущая логика CalendarComponent: если activeCategoryFilters пуст, он показывает всё.
+    // Поэтому, если categories.length > 0 и activeCategoryIds.length === 0, то все будет скрыто.
+    // Если categories.length === 0, то activeCategoryIds будет пуст, и календарь покажет только 'default'.
+
+    // Для соответствия логике CalendarComponent:
+    // Если НИ ОДНА категория не активна, но категории существуют, передаем специальный маркер или пустой массив,
+    // который CalendarComponent интерпретирует как "скрыть все именованные категории".
+    // Если ВСЕ категории активны, можно передать undefined или массив всех ID, чтобы CalendarComponent показал все.
+    // Текущий `activeCategoryIds` как раз подходит для CalendarComponent, если тот интерпретирует пустой массив как "показать только 'default', если он не отфильтрован".
+    // Но в CalendarComponent мы сделали: если activeCategoryFilters пуст (undefined или []), то показывать все.
+    // Значит, если пользователь отжал ВСЕ галочки, activeCategoryIds будет [], и CalendarComponent покажет ВСЁ.
+    // Это может быть не тем, что ожидается.
+    // Чтобы исправить: если activeCategoryIds пуст, НО категории существуют, значит пользователь все отфильтровал.
+
+    let filtersForCalendar = activeCategoryIds;
+    if (categories.length > 0 && activeCategoryIds.length === 0) {
+        // Все категории существуют, но ни одна не выбрана -> передаем массив, который не будет содержать ни одного ID категорий
+        // (даже 'default', если мы не хотим его показывать в этом случае).
+        // TUI скроет все, что не 'default'. 'default' скроется, если не в activeCategoryIds.
+        // Чтобы явно скрыть всё, включая 'default', можно передать ['__ HIDE_ALL__'] и обработать в CalendarComponent.
+        // Проще: CalendarComponent УЖЕ обрабатывает пустой activeCategoryFilters как "показать все".
+        // Нам нужно, чтобы если activeCategoryIds пуст И categories.length > 0, то CalendarComponent скрыл ВСЕ категории.
+        // А если activeCategoryIds содержит ID, то только их.
+        // Передаем как есть, CalendarComponent разберется.
     }
 
-    if (!fileSystemApi) {
-        return (
-            <div className="app-error">
-                Ошибка: Не удалось получить доступ к файловой системе...
-            </div>
-        );
-    }
 
-    if (!userCredentials) {
-        return <RegistrationPage onRegister={handleRegistration} />;
-    }
-
-    if (!isAiConfigLoadedFromFile) {
-        return (
-            <OnboardingQuestionnairePage
-                initialConfig={aiConfig}
-                onComplete={handleOnboardingComplete}
-                userName={userCredentials.name}
-            />
-        );
-    }
-
-    // Основное приложение
     return (
         <Router>
             <div className="app-container">
                 <nav className="app-sidebar">
-                    <div className="sidebar-brand">
-                        Какаой-то APP
-                    </div>
-
+                    <div className="sidebar-brand">Календарь PRO</div>
                     <ul className="sidebar-main-nav">
-                        <li>
-                            <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                                <IconPlaceholder name="Calendar" /> Календарь
-                            </NavLink>
-                        </li>
-                        <li> {/* AI Ассистент как одна из основных функций */}
-                            <NavLink to="/ai" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                                <IconPlaceholder name="AI" /> AI Ассистент
-                            </NavLink>
-                        </li>
+                        <li><NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Calendar" /> Календарь</NavLink></li>
+                        <li><NavLink to="/ai" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="AI" /> AI Ассистент</NavLink></li>
                     </ul>
 
-                    <div className="sidebar-section-title">Мои проекты</div>
+                    <div className="sidebar-section-title">Мои категории</div>
                     <ul className="sidebar-projects-nav">
                         {categories.map(category => (
-                            <li key={category.id}>
+                            <li key={category.id} title={category.checked ? "Скрыть задачи этой категории" : "Показать задачи этой категории"}>
                                 <a
                                     href="#"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        // TODO: Возможно, в будущем здесь будет логика фильтрации календаря по категории
-                                        console.log("Clicked category:", category.name);
+                                        toggleCategoryFilter(category.id);
                                     }}
-                                    className="nav-link"
+                                    className={`nav-link category-filter-link ${!category.checked ? 'disabled-filter' : ''}`}
                                 >
-                                    <span className="category-dot" style={{ backgroundColor: category.color }}></span>
-                                    {category.name}
+                                    <span
+                                        className="category-dot"
+                                        style={{
+                                            backgroundColor: category.color,
+                                            opacity: category.checked ? 1 : 0.4
+                                        }}
+                                    ></span>
+                                    <span style={{ textDecoration: !category.checked ? 'line-through' : 'none', opacity: category.checked ? 1 : 0.7 }}>
+                                        {category.name}
+                                    </span>
                                 </a>
                             </li>
                         ))}
                         <li>
-                            <a
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    // TODO: Логика добавления нового проекта/категории
-                                    alert("Функция 'Новый проект' еще не реализована.");
-                                }}
-                                className="nav-link"
-                            >
-                                <IconPlaceholder name="Plus" /> Новый проект
+                            <a href="#" onClick={(e) => { e.preventDefault(); openAddCategoryModal(); }} className="nav-link" >
+                                <IconPlaceholder name="Plus" /> Новая категория
                             </a>
                         </li>
                     </ul>
-
-                    {/* Место для других секций из SingularityApp, если понадобится: "Без проекта", "Когда-нибудь", "Архив", "Корзина" */}
-                    {/* Например:
-                    <div className="sidebar-section-title">Системные</div>
-                    <ul className="sidebar-system-nav">
-                        <li><a href="#" className="nav-link"><IconPlaceholder name="NoProject"/>Без проекта</a></li>
-                        <li><a href="#" className="nav-link"><IconPlaceholder name="Archive"/>Архив</a></li>
-                    </ul>
-                    */}
-
                     <ul className="sidebar-footer-nav">
-                        <li>
-                            <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                                <IconPlaceholder name="Profile" />
-                                {/* Текст "Профиль", но будет выглядеть как "Настройки" из-за положения */}
-                                Профиль
-                            </NavLink>
-                        </li>
+                        <li><NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><IconPlaceholder name="Profile" /> Профиль</NavLink></li>
                     </ul>
                 </nav>
 
@@ -347,43 +341,44 @@ function App() {
                             path="/"
                             element={
                                 <CalendarComponent
-                                    categories={categories}
+                                    allCategories={categories}
                                     schedules={schedules}
-                                    onCategoriesChange={updateCategories}
                                     onSchedulesChange={updateSchedules}
+                                    activeCategoryFilters={filtersForCalendar}
                                 />
                             }
                         />
                         <Route
                             path="/profile"
-                            element={
-                                <UserProfile
-                                    schedules={schedules}
-                                    categories={categories}
-                                    currentAiConfig={aiConfig}
-                                    onAiConfigChange={updateAiConfig}
-                                    userCredentials={userCredentials}
-                                />
-                            }
+                            element={ <UserProfile schedules={schedules} categories={categories} onCategoriesChange={updateCategories} currentAiConfig={aiConfig} onAiConfigChange={updateAiConfig} userCredentials={userCredentials} /> }
                         />
                         <Route
                             path="/ai"
-                            element={
-                                <AiAssistant
-                                    aiConfig={aiConfig}
-                                    categories={categories}
-                                    onAddSchedules={handleAddSchedules}
-                                />
-                            }
+                            element={ <AiAssistant aiConfig={aiConfig} categories={categories} onAddSchedules={handleAddSchedules} /> }
                         />
-                        {/* Маршруты для "Inbox", "Today", "Plans" если будете их добавлять */}
-                        {/* <Route path="/inbox" element={<div>Входящие (не реализовано)</div>} /> */}
-                        {/* <Route path="/today" element={<div>Сегодня (не реализовано)</div>} /> */}
-                        {/* <Route path="/plans" element={<div>Планы (не реализовано)</div>} /> */}
-                        <Route path="*" element={<div>Страница не найдена (404)</div>} />
+                        <Route path="*" element={<div style={{padding: "20px"}}>Страница не найдена (404)</div>} />
                     </Routes>
                 </main>
             </div>
+
+            {isAddCategoryModalOpen && (
+                <div className="modal-backdrop simple-modal-backdrop">
+                    <div className="modal-content simple-modal-content">
+                        <h3>Новая категория</h3>
+                        <label htmlFor="newCategoryNameInput">Название категории:</label>
+                        <input type="text" id="newCategoryNameInput" name="name" value={newCategoryData.name} onChange={handleNewCategoryDataChange} autoFocus />
+                        <label htmlFor="newCategoryColorInput">Цвет категории:</label>
+                        <div className="color-picker-container">
+                            <input type="color" id="newCategoryColorInput" name="color" value={newCategoryData.color} onChange={handleNewCategoryDataChange} className="category-color-input" />
+                            <span className="color-preview" style={{ backgroundColor: newCategoryData.color }}></span>
+                        </div>
+                        <div className="modal-actions">
+                            <button type="button" onClick={handleConfirmAddCategory} className="button primary">Добавить</button>
+                            <button type="button" onClick={closeAddCategoryModal} className="button secondary">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Router>
     );
 }

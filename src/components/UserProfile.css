@@ -2,7 +2,7 @@
 .user-profile-page {
     padding: 20px;
     box-sizing: border-box;
-    overflow-y: auto; /* Добавляем скролл, если контент большой */
+    overflow: auto;
 }
 
 .profile-section {

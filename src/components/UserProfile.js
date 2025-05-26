@@ -65,7 +65,6 @@ const UserProfile = ({ schedules, categories, currentAiConfig, onAiConfigChange,
         alert("Настройки AI-ассистента отправлены на сохранение."); // App.js обработает фактическое сохранение
     };
 
-    // --- Фильтрация задач на сегодня (как было) ---
     const todaysSchedules = useMemo(() => {
         // ... (код без изменений)
         if (!Array.isArray(schedules)) {
@@ -123,7 +122,6 @@ const UserProfile = ({ schedules, categories, currentAiConfig, onAiConfigChange,
 
             <div className="profile-section">
                 <h3>Задачи на сегодня ({todaysSchedules.length})</h3>
-                {/* ... (код списка задач без изменений) ... */}
                 {todaysSchedules.length > 0 ? (
                     <ul className="todays-tasks-list">
                         {todaysSchedules.map(task => {
