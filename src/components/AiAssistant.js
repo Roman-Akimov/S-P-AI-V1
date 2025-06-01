@@ -1,12 +1,10 @@
 import React, {useCallback, useState} from 'react';
 import './AiAssistant.css';
 
-// --- Конфигурация AI ---
 const API_ENDPOINT = 'https://api.aimlapi.com/v1/chat/completions';
 const AI_MODEL = 'gpt-4o-mini';
-const HARDCODED_API_KEY = '7c4a597d298949fc8d6a97c1c5fa1484';
+const HARDCODED_API_KEY = '7c4a597d298949fc8d6a97c1c5fa1484'; // ЗАМЕНИТЕ НА ВАШ КЛЮЧ
 
-// --- Функция вызова AI Service ---
 const callAIService = async (prompt, systemPrompt) => {
     console.log("--- Вызов AI Service ---");
     console.log("System Prompt:", systemPrompt || "N/A");
@@ -28,7 +26,7 @@ const callAIService = async (prompt, systemPrompt) => {
             body: JSON.stringify({
                 model: AI_MODEL,
                 messages: messages,
-                temperature: 0.2, // Adjusted temperature, similar to Python's 0.3, can be tuned
+                temperature: 0.2,
             }),
         });
 
@@ -56,147 +54,205 @@ const callAIService = async (prompt, systemPrompt) => {
     }
 };
 
-// --- ОБНОВЛЕННАЯ Функция парсинга ТЕКСТОВОГО ответа AI ---
-const parseAiTextResponse = (fullAiText, categories) => {
-    console.log("Parsing full AI text:", fullAiText);
+
+const parseAiTextResponse = (fullAiText, categoriesFromApp) => {
+    console.log("--- Начало парсинга ответа AI --- \nПолный текст:\n", fullAiText);
 
     const allParsedTasks = [];
     let overallParseError = null;
 
     const taskSeparator = "--- НОВАЯ ЗАДАЧА ---";
-    const taskBlocks = fullAiText.split(taskSeparator).map(block => block.trim()).filter(block => block.length > 0);
+    const taskBlocks = fullAiText.split(taskSeparator)
+        .map(block => block.trim())
+        .filter(block => block.length > 0);
 
     if (taskBlocks.length === 0 && fullAiText.trim().length > 0) {
         taskBlocks.push(fullAiText.trim());
-        console.log("No separators found, parsing as a single task block.");
+        console.log("Сепараторы не найдены, парсинг всего текста как одного блока задачи.");
     } else if (taskBlocks.length === 0) {
-        console.log("No task blocks found in AI response.");
+        console.log("Блоки задач не найдены в ответе AI.");
         return { success: false, tasks: [], message: "AI не предоставил текст для разбора задач." };
     }
 
-    console.log(`Found ${taskBlocks.length} task block(s) to parse.`);
+    console.log(`Найдено ${taskBlocks.length} блоков задач для парсинга.`);
 
-    taskBlocks.forEach((text, blockIndex) => {
-        console.log(`\nParsing task block #${blockIndex + 1}:\n`, text);
+    taskBlocks.forEach((textBlock, blockIndex) => {
+        console.log(`\n--- Парсинг блока #${blockIndex + 1} --- \nТекст блока:\n`, textBlock);
         let parseErrorForBlock = null;
 
         try {
-            let title = "Без названия";
-            let startDate = new Date(); startDate.setHours(0, 0, 0, 0);
-            let startTime = null;
-            let endDate = null;
-            let isAllDay = true;
-            let description = ""; let location = ""; let categoryGuess = ""; let priority = "Medium";
-            const lines = text.split('\n'); const now = new Date();
+            const task = {
+                _originalIndex: blockIndex,
+                title: "",
+                description: "",
+                categoryGuess: "",
+                priority: "Medium",
+                start: new Date(),
+                end: null,
+                isAllDay: true,
+                location: ""
+            };
+            task.start.setHours(0,0,0,0);
 
-            const titleMatch = text.match(/^(.*?)(?:сегодня|завтра|послезавтра|\d{1,2}[./]\d{1,2}|\d{4}-\d{2}-\d{2}|в\s+\d{1,2}:\d{2}|с\s+\d{1,2}:\d{2}\s*(?:до|по)\s*\d{1,2}:\d{2}|\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}|$)/i);
-            if (titleMatch && titleMatch[1].trim()) { title = titleMatch[1].trim().replace(/[:\-]+$/, '').trim(); }
-            else if (lines.length > 0 && lines[0].trim().length < 100 && !lines[0].toLowerCase().startsWith("дата:") && !lines[0].toLowerCase().startsWith("время:")) { title = lines[0].trim(); }
-            console.log(`  [Block ${blockIndex + 1}] Parsed Title:`, title);
+            const lines = textBlock.split('\n').map(line => line.trim()).filter(line => line);
+            let descriptionLines = [];
+            let titleFound = false;
 
-            let dateFound = false;
-            const dateRegex = /(\d{1,2}[./]\d{1,2}[./]\d{4})|(\d{4}-\d{2}-\d{2})/;
-            let dateMatchInBlock = text.match(dateRegex);
-            if (dateMatchInBlock) {
-                const dateStr = dateMatchInBlock[1] || dateMatchInBlock[2];
-                const parts = dateStr.includes('.') ? dateStr.split('.') : dateStr.split('-');
-                const formattedDateStr = parts.length === 3 ? (dateStr.includes('.') ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateStr) : null;
-                if (formattedDateStr) { const parsedDate = new Date(formattedDateStr); if (!isNaN(parsedDate.getTime())) { startDate = parsedDate; startDate.setHours(0, 0, 0, 0); dateFound = true; } }
-            } else if (/завтра/i.test(text)) { const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1); startDate = tomorrow; startDate.setHours(0,0,0,0); dateFound = true; }
-            else if (/послезавтра/i.test(text)) { const dayAfterTomorrow = new Date(now); dayAfterTomorrow.setDate(now.getDate() + 2); startDate = dayAfterTomorrow; startDate.setHours(0,0,0,0); dateFound = true; }
-            else if (/сегодня/i.test(text)) { startDate = new Date(now); startDate.setHours(0,0,0,0); dateFound = true; }
-            if (dateFound) console.log(`  [Block ${blockIndex + 1}] Parsed Date:`, startDate.toLocaleDateString());
-            else console.log(`  [Block ${blockIndex + 1}] Date not explicitly found, using today.`);
+            lines.forEach(line => {
+                const lowerLine = line.toLowerCase();
+                let match;
 
-            let timeParsedSuccessfully = false;
-            const timeRangeRegex = /(?:с\s+)?(\d{1,2}):(\d{2})\s*(?:-|до|по)\s*(\d{1,2}):(\d{2})/i;
-            const timeRangeMatch = text.match(timeRangeRegex);
+                // Извлечение Названия задачи
+                match = line.match(/^(?:\*\*)?Название задачи(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    task.title = match[1].trim();
+                    titleFound = true;
+                    console.log(`  [Блок ${blockIndex + 1}] Название (метка):`, task.title);
+                    return; // Переходим к следующей строке
+                }
 
-            if (timeRangeMatch) {
-                const startHours = parseInt(timeRangeMatch[1], 10); const startMinutes = parseInt(timeRangeMatch[2], 10);
-                const endHours = parseInt(timeRangeMatch[3], 10); const endMinutes = parseInt(timeRangeMatch[4], 10);
-                if (startHours >= 0 && startHours < 24 && startMinutes >= 0 && startMinutes < 60 &&
-                    endHours >= 0 && endHours < 24 && endMinutes >= 0 && endMinutes < 60) {
-                    startDate.setHours(startHours, startMinutes, 0, 0);
-                    startTime = { hours: startHours, minutes: startMinutes };
-                    endDate = new Date(startDate.getTime());
-                    endDate.setHours(endHours, endMinutes, 0, 0);
-                    isAllDay = false; timeParsedSuccessfully = true;
-                    console.log(`  [Block ${blockIndex + 1}] Parsed Time Range: ${startHours}:${startMinutes} to ${endHours}:${endMinutes}`);
-                    console.log(`  [Block ${blockIndex + 1}] Calculated Start: ${startDate}`);
-                    console.log(`  [Block ${blockIndex + 1}] Calculated End: ${endDate}`);
+                // Извлечение Описания
+                match = line.match(/^(?:\*\*)?Описание(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    descriptionLines.push(match[1].trim());
+                    console.log(`  [Блок ${blockIndex + 1}] Описание (метка, первая строка):`, match[1].trim());
+                    return;
+                }
+
+                // Извлечение Категории
+                match = line.match(/^(?:\*\*)?Категория(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    task.categoryGuess = match[1].trim();
+                    console.log(`  [Блок ${blockIndex + 1}] Категория (метка):`, task.categoryGuess);
+                    return;
+                }
+
+                // Извлечение Приоритета
+                match = line.match(/^(?:\*\*)?Приоритет(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    const prio = match[1].trim().toLowerCase();
+                    if (prio.includes("важно") || prio.includes("высокий")) task.priority = "High";
+                    else if (prio.includes("низкий")) task.priority = "Low";
+                    else task.priority = "Medium";
+                    console.log(`  [Блок ${blockIndex + 1}] Приоритет (метка):`, task.priority);
+                    return;
+                }
+
+                // Извлечение Даты
+                match = line.match(/^(?:\*\*)?Дата(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    const dateStr = match[1].trim();
+                    let parsedDate = null;
+                    if (/сегодня/i.test(dateStr)) parsedDate = new Date();
+                    else if (/завтра/i.test(dateStr)) { parsedDate = new Date(); parsedDate.setDate(parsedDate.getDate() + 1); }
+                    else if (/послезавтра/i.test(dateStr)) { parsedDate = new Date(); parsedDate.setDate(parsedDate.getDate() + 2); }
+                    else { // Пытаемся распарсить ДД.ММ.ГГГГ или ГГГГ-ММ-ДД
+                        const datePartsDMY = dateStr.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+                        const datePartsYMD = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+                        if (datePartsDMY) parsedDate = new Date(datePartsDMY[3], datePartsDMY[2] - 1, datePartsDMY[1]);
+                        else if (datePartsYMD) parsedDate = new Date(datePartsYMD[1], datePartsYMD[2] - 1, datePartsYMD[3]);
+                    }
+                    if (parsedDate && !isNaN(parsedDate.getTime())) {
+                        task.start = parsedDate;
+                        task.start.setHours(0,0,0,0);
+                        console.log(`  [Блок ${blockIndex + 1}] Дата (метка):`, task.start.toLocaleDateString());
+                    } else {
+                        console.log(`  [Блок ${blockIndex + 1}] Не удалось распознать дату из метки:`, dateStr);
+                    }
+                    return;
+                }
+
+                // Извлечение Времени
+                match = line.match(/^(?:\*\*)?Время(?:\*\*)?[:\s-]+(.*)/i);
+                if (match && match[1]) {
+                    const timeStr = match[1].trim();
+
+                    const timeRangeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(?:-|до|по)\s*(\d{1,2}):(\d{2})/i);
+                    const singleTimeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+
+                    if (timeRangeMatch) {
+                        task.start.setHours(parseInt(timeRangeMatch[1]), parseInt(timeRangeMatch[2]), 0, 0);
+                        task.end = new Date(task.start);
+                        task.end.setHours(parseInt(timeRangeMatch[3]), parseInt(timeRangeMatch[4]), 0, 0);
+                        task.isAllDay = false;
+                        console.log(`  [Блок ${blockIndex + 1}] Время (метка, диапазон):`, timeStr);
+                    } else if (singleTimeMatch) {
+                        task.start.setHours(parseInt(singleTimeMatch[1]), parseInt(singleTimeMatch[2]), 0, 0);
+                        task.end = new Date(task.start.getTime() + 3600000);
+                        task.isAllDay = false;
+                        console.log(`  [Блок ${blockIndex + 1}] Время (метка, одно значение):`, timeStr);
+                    } else if (/весь день/i.test(timeStr)) {
+                        task.isAllDay = true;
+                        task.end = null;
+                        console.log(`  [Блок ${blockIndex + 1}] Время (метка): Весь день`);
+                    } else {
+                        console.log(`  [Блок ${blockIndex + 1}] Не удалось распознать время из метки:`, timeStr);
+                    }
+                    return;
+                }
+
+                // Извлечение Места
+                match = line.match(/^(?:\*\*)?Место(?:\*\*)?[:\s@-]+(.*)/i);
+                if (match && match[1]) {
+                    task.location = match[1].trim();
+                    console.log(`  [Блок ${blockIndex + 1}] Место (метка):`, task.location);
+                    return;
+                }
+
+                // Если строка не распознана как специфическое поле
+                // и заголовок еще не найден, и это первая строка блока, считаем ее заголовком
+                if (!titleFound && lines.indexOf(line.trim()) === 0 && line.length < 100) {
+                    task.title = line.trim();
+                    titleFound = true;
+                    console.log(`  [Блок ${blockIndex + 1}] Название (первая строка):`, task.title);
+                } else {
+                    // Иначе добавляем к описанию
+                    descriptionLines.push(line.trim());
+                    console.log(`  [Блок ${blockIndex + 1}] Добавлено в описание:`, line.trim());
+                }
+            });
+
+            task.description = descriptionLines.join('\n').trim();
+
+            // Если заголовок так и не был найден по метке или как первая строка, но есть описание,
+            // можно взять первую строку описания как заголовок.
+            if (!task.title && task.description) {
+                const descLines = task.description.split('\n');
+                task.title = descLines[0].trim();
+                task.description = descLines.slice(1).join('\n').trim();
+                console.log(`  [Блок ${blockIndex + 1}] Название (из описания):`, task.title);
+            }
+
+            // Финальная проверка на пустой заголовок
+            if (!task.title || task.title.toLowerCase() === "без названия") {
+                if (task.description || task.location || !task.isAllDay) {
+                    task.title = "Задача от AI"; // Заглушка, если все остальное есть
+                } else {
+                    console.log(`  [Блок ${blockIndex + 1}] Пропуск блока: отсутствует осмысленная информация.`);
+                    parseErrorForBlock = "Блок не содержит достаточно информации для создания задачи.";
                 }
             }
 
-            if (!timeParsedSuccessfully) {
-                const singleTimeRegex = /(\d{1,2}):(\d{2})/; const singleTimeMatch = text.match(singleTimeRegex);
-                if (singleTimeMatch) {
-                    const hours = parseInt(singleTimeMatch[1], 10); const minutes = parseInt(singleTimeMatch[2], 10);
-                    if (hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60) {
-                        startDate.setHours(hours, minutes); startTime = { hours, minutes }; isAllDay = false;
-                        endDate = new Date(startDate.getTime() + 3600 * 1000); timeParsedSuccessfully = true;
-                        console.log(`  [Block ${blockIndex + 1}] Parsed Single Time: ${hours}:${minutes}`);
-                    }
-                } else if (/утром/i.test(text)) { startDate.setHours(9, 0); startTime = { hours: 9, minutes: 0 }; isAllDay = false; endDate = new Date(startDate.getTime() + 3600 * 1000); timeParsedSuccessfully = true; }
-                else if (/днем|в обед/i.test(text)) { startDate.setHours(13, 0); startTime = { hours: 13, minutes: 0 }; isAllDay = false; endDate = new Date(startDate.getTime() + 3600 * 1000); timeParsedSuccessfully = true; }
-                else if (/вечером/i.test(text)) { startDate.setHours(18, 0); startTime = { hours: 18, minutes: 0 }; isAllDay = false; endDate = new Date(startDate.getTime() + 3600 * 1000); timeParsedSuccessfully = true; }
-            }
-
-            if (timeParsedSuccessfully && /весь день/i.test(text)) {
-                isAllDay = true; startTime = null; endDate = null;
-                console.log(`  [Block ${blockIndex + 1}] Overridden by "весь день"`);
-            } else if (!timeParsedSuccessfully && /весь день/i.test(text)) {
-                isAllDay = true; startTime = null; endDate = null;
-                console.log(`  [Block ${blockIndex + 1}] Parsed: All day event`);
-            }
-
-            if (!isAllDay && startTime) console.log(`  [Block ${blockIndex + 1}] Final Time: Start ${startTime.hours}:${startTime.minutes}${endDate ? ', End ' + endDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : ''}`);
-            else if (isAllDay) console.log(`  [Block ${blockIndex + 1}] Final: All day event`);
-            else console.log(`  [Block ${blockIndex + 1}] Time not explicitly found, assuming all day.`);
-
-            const descMarker = "описание:"; const descIndex = text.toLowerCase().indexOf(descMarker);
-            if (descIndex !== -1) {
-                let descCandidate = text.substring(descIndex + descMarker.length).trim();
-                const nextMarkersRegex = /\n\s*(?:место:|где:|локация:|категория:|приоритет:)/i;
-                const nextMarkerMatch = descCandidate.match(nextMarkersRegex);
-                if (nextMarkerMatch && nextMarkerMatch.index !== undefined) { descCandidate = descCandidate.substring(0, nextMarkerMatch.index).trim(); }
-                description = descCandidate;
-            }
-            if (description) console.log(`  [Block ${blockIndex + 1}] Parsed Description:`, description.substring(0,50) + "...");
-
-            const locMatch = text.match(/(?:место|где|локация)[:\s@]+(.*?)(?:\n|$)/i);
-            if (locMatch && locMatch[1].trim()) { location = locMatch[1].trim(); }
-            if (location) console.log(`  [Block ${blockIndex + 1}] Parsed Location:`, location);
-
-            const lowerText = text.toLowerCase();
-            const foundCategory = categories.find(cat => lowerText.includes(cat.name.toLowerCase()));
-            if (foundCategory) { categoryGuess = foundCategory.name; }
-            if (categoryGuess) console.log(`  [Block ${blockIndex + 1}] Parsed Category Guess:`, categoryGuess);
-
-            if (/\b(важно|срочно|высокий)\b/i.test(text)) { priority = "High"; }
-            else if (/\b(неважно|низкий)\b/i.test(text)) { priority = "Low"; }
-            console.log(`  [Block ${blockIndex + 1}] Parsed Priority:`, priority);
-
-            if (title === "Без названия" && !description && !location && !dateFound && isAllDay && !startTime) {
-                console.log(`  [Block ${blockIndex + 1}] Skipping due to lack of meaningful data.`);
-                parseErrorForBlock = "Блок не содержит достаточно информации для создания задачи.";
-            } else {
-                const task = { _originalIndex: blockIndex, title: title, start: new Date(startDate.getTime()), end: isAllDay ? new Date(startDate.getTime()) : (endDate ? new Date(endDate.getTime()) : null), isAllDay: isAllDay, description: description, location: location, categoryGuess: categoryGuess, priority: priority };
+            if (task.title !== "Задача от AI" || task.description || task.location || !task.isAllDay) {
                 allParsedTasks.push(task);
             }
+
         } catch (e) {
             console.error(`Ошибка парсинга блока #${blockIndex + 1}:`, e);
             parseErrorForBlock = `Не удалось разобрать блок #${blockIndex + 1}: ${e.message}`;
         }
+
         if (parseErrorForBlock && !overallParseError) { overallParseError = parseErrorForBlock; }
         else if (parseErrorForBlock) { overallParseError += `; ${parseErrorForBlock}`; }
     });
 
-    console.log("Total parsed tasks:", allParsedTasks.length);
+    console.log("--- Парсинг завершен --- \nВсего извлечено задач:", allParsedTasks.length);
+    if (overallParseError) console.warn("Общие ошибки/предупреждения парсинга:", overallParseError);
+
     return { success: allParsedTasks.length > 0, tasks: allParsedTasks, message: overallParseError };
 };
 
-// --- Компонент AiAssistant ---
+
 const AiAssistant = ({ aiConfig, categories, onAddSchedules }) => {
     const [userPrompt, setUserPrompt] = useState('');
     const [useSystemPrompt, setUseSystemPrompt] = useState(true);
@@ -206,16 +262,14 @@ const AiAssistant = ({ aiConfig, categories, onAddSchedules }) => {
     const [selectedTaskIndices, setSelectedTaskIndices] = useState([]);
     const [error, setError] = useState('');
 
-    const generateSystemPrompt = useCallback(() => {
-        if (!aiConfig) return "Ошибка: Данные конфигурации пользователя (aiConfig) отсутствуют."; // Guard clause
 
+    const generateSystemPrompt = useCallback(() => {
+        if (!aiConfig) return "Ошибка: Данные конфигурации пользователя (aiConfig) отсутствуют.";
         const todayFullString = new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const currentDayOfWeekJS = new Date().getDay();
         const jsDayToPythonDay = [7, 1, 2, 3, 4, 5, 6];
         const pythonDayOfWeek = jsDayToPythonDay[currentDayOfWeekJS];
         const taskSeparator = "\n--- НОВАЯ ЗАДАЧА ---\n";
-
-        // Constructing the "personal_card" equivalent from aiConfig
         let userDataSection = "### Данные пользователя (на основе анкеты и настроек):\n";
         userDataSection += `- **Род занятий:** ${aiConfig.occupation || 'Не указано'}\n`;
         userDataSection += `- **График работы (описательно):** ${aiConfig.workScheduleText || 'Не указано'}\n`;
@@ -237,8 +291,6 @@ const AiAssistant = ({ aiConfig, categories, onAddSchedules }) => {
         userDataSection += `- **Образование:** ${aiConfig.educationBackground || 'Не указано'}\n`;
         userDataSection += `- **Личные предпочтения/заметки для AI:** ${aiConfig.personalPreferencesNotes || 'Нет особых пожеланий.'}\n`;
         userDataSection += `- **Доступные категории задач:** ${categories.map(c => c.name).join(', ') || 'Нет категорий'}\n`;
-
-
         let generalConsiderations = "### Как учитывать анкету и общие принципы планирования:\n";
         generalConsiderations += "1.  **Рабочий/учебный график и занятость:** Нельзя планировать задачи в стандартное рабочее/учебное время, указанное в анкете. Учитывай описательный график работы, если он есть. Также помни о времени на дорогу (поле 'Удаленность работы/учебы' и 'Обычный транспорт').\n";
         generalConsiderations += "2.  **Продуктивность:** Выбирай время для задач, когда пользователь наиболее продуктивен, основываясь на полях 'Наилучшее время продуктивности (описательно)' и 'Уровни продуктивности (по времени суток)'.\n";
@@ -247,14 +299,12 @@ const AiAssistant = ({ aiConfig, categories, onAddSchedules }) => {
         generalConsiderations += "5.  **Усидчивость и тип личности:** 'Уровень усидчивости' может влиять на максимальную продолжительность одного блока работы. 'Тип личности' может влиять на предпочтение работы в одиночестве или с кем-то (если это релевантно задаче).\n";
         generalConsiderations += "6.  **Личные предпочтения:** Обязательно учитывай информацию из поля 'Личные предпочтения/заметки для AI'. Например, если пользователь хочет видеть друзей раз в неделю, старайся оставить для этого время или предложи это, если задача не конфликтует.\n";
         generalConsiderations += `7.  **Категории задач:** Отнеси задачу к одной из доступных категорий.\n`;
-
         let durationInterpretationRules = "### Правила интерпретации срока выполнения (если пользователь указывает период):\n";
         durationInterpretationRules += "- Если \"на этой неделе\": до ближайшего воскресенья включительно.\n";
         durationInterpretationRules += "- Если \"на этом месяце\": до последнего дня текущего месяца включительно.\n";
         durationInterpretationRules += "- Если \"до пятницы\" и т.п.: вычисли разницу в днях, включая конечный день.\n";
         durationInterpretationRules += "- Если \"за X дней\", \"до завтра\": вычисли явное количество дней.\n";
         durationInterpretationRules += "- Если срок не указан: используй значение по умолчанию `3 дня` (если задача не выглядит очень маленькой или большой) для определения окна планирования.\n";
-
         return `Ты — интеллектуальный планировщик задач. Твоя задача — анализировать информацию из запроса пользователя и его анкеты, чтобы выбрать **оптимальное время и параметры** для выполнения каждой задачи.
 
 ---
@@ -282,7 +332,7 @@ ${durationInterpretationRules}
 - **Примерное время выполнения:** (Твоя оценка, например, "1 час 30 минут", "около 2 часов")
 
 **Пример ответа для запроса "Нужно подготовить отчет к среде и сходить на тренировку завтра вечером":**
-Подготовить отчет
+Название задачи: Подготовить отчет
 Дата: (выбери подходящий день до среды)
 Время: (выбери оптимальное время, учитывая продуктивность)
 Описание: Составить ежемесячный отчет по продажам.
@@ -290,7 +340,7 @@ ${durationInterpretationRules}
 Приоритет: Важно
 Примерное время выполнения: 2 часа
 ${taskSeparator.trim()}
-Тренировка
+Название задачи: Тренировка
 Дата: завтра
 Время: вечером (например, 19:00 - 20:30)
 Описание: Сходить на запланированную тренировку.
@@ -330,11 +380,11 @@ ${taskSeparator.trim()}
             const validTasks = parseResult.tasks.filter(task => task.title && task.start && !isNaN(task.start.getTime()));
             if (validTasks.length > 0) {
                 setSuggestedTasks(validTasks);
-                setSelectedTaskIndices(validTasks.map((_, index) => index));
-            } else if (!parseResult.message) { // Если задачи были, но невалидны, и нет сообщения от парсера
+                setSelectedTaskIndices(validTasks.map((_, index) => index)); // Выбираем все по умолчанию
+            } else if (!parseResult.message) {
                 currentError = currentError ? `${currentError}; AI ответил, но не удалось извлечь корректные задачи из текста.` : "AI ответил, но не удалось извлечь корректные задачи из текста.";
             }
-        } else if (!parseResult.message) { // Если парсер не вернул задач и нет сообщения об ошибке
+        } else if (!parseResult.message) {
             currentError = currentError ? `${currentError}; AI ответил, но в тексте не найдено задач для добавления.` : "AI ответил, но в тексте не найдено задач для добавления.";
         }
 
@@ -346,30 +396,74 @@ ${taskSeparator.trim()}
         setSelectedTaskIndices(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]);
     };
 
+    const formatDateToDateTimeLocalString = (d) => { /* ... как в CalendarComponent ... */
+        if (!d || !(d instanceof Date) || isNaN(d.getTime())) { const n=new Date(), lN=new Date(n.getTime()-(n.getTimezoneOffset()*60000)); return lN.toISOString().slice(0,16); }
+        const year = d.getFullYear();
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+    const formatDateToDateString = (d) => { /* ... как в CalendarComponent ... */
+        if (!d || !(d instanceof Date) || isNaN(d.getTime())) { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; }
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+    const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+
     const formatParsedTaskForState = useCallback((parsedTask) => {
-        const category = categories.find(cat => cat.name === parsedTask.categoryGuess);
-        const categoryId = category ? category.id : (categories[0]?.id || null);
-        const formatDateToDateTimeLocalString = (d) => { if (!d || !(d instanceof Date) || isNaN(d.getTime())) { const n=new Date(), lN=new Date(n.getTime()-(n.getTimezoneOffset()*60000)); return lN.toISOString().slice(0,16); } const lD = new Date(d.getTime()-(d.getTimezoneOffset()*60000)); return lD.toISOString().slice(0,16); };
-        const formatDateToDateString = (d) => { if (!d || !(d instanceof Date) || isNaN(d.getTime())) { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`; } return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-        let startStr = ''; let endStr = ''; const startDate = parsedTask.start; const endDate = parsedTask.end;
-        if (parsedTask.isAllDay) { startStr = formatDateToDateString(startDate); endStr = startStr; }
-        else {
+        const category = categories.find(cat => cat.name.toLowerCase() === parsedTask.categoryGuess?.toLowerCase());
+        const categoryId = category ? category.id : null;
+
+        let startStr = '';
+        let endStr = '';
+        const startDate = parsedTask.start; // это уже объект Date из парсера
+        const endDate = parsedTask.end;   // это тоже объект Date или null из парсера
+
+        if (parsedTask.isAllDay) {
+            startStr = formatDateToDateString(startDate);
+            endStr = startStr; // Для allday end обычно равен start в UI
+        } else {
             startStr = formatDateToDateTimeLocalString(startDate);
             if (endDate && endDate instanceof Date && !isNaN(endDate.getTime())) {
                 endStr = formatDateToDateTimeLocalString(endDate);
-            } else { // Если нет валидного endDate (например, для одиночного времени без указания длительности)
-                const defaultEndDate = new Date(startDate.getTime() + 3600 * 1000); // Ставим +1 час
+            } else {
+                const defaultEndDate = new Date(startDate.getTime() + 3600 * 1000);
                 endStr = formatDateToDateTimeLocalString(defaultEndDate);
             }
         }
-        const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        return { id: generateId(), categoryId: categoryId, title: parsedTask.title, description: parsedTask.description || '', isAllDay: parsedTask.isAllDay, start: startStr, end: endStr, location: parsedTask.location || '', priority: parsedTask.priority || 'Medium', completed: false, subtasks: [] };
+
+        return {
+            id: generateId(),
+            categoryId: categoryId,
+            title: parsedTask.title,
+            description: parsedTask.description || '',
+            isAllDay: parsedTask.isAllDay,
+            start: startStr,
+            end: endStr,
+            location: parsedTask.location || '',
+            priority: parsedTask.priority || 'Medium',
+            completed: false,
+            subtasks: []
+        };
     }, [categories]);
 
     const handleAddSelectedTasks = () => {
-        const tasksToAdd = selectedTaskIndices.map(index => suggestedTasks[index]).map(formatParsedTaskForState).filter(task => task !== null);
-        if (tasksToAdd.length > 0) { console.log("Adding schedules from AI (parsed text):", tasksToAdd); onAddSchedules(tasksToAdd); setAiResponseText(''); setSuggestedTasks([]); setSelectedTaskIndices([]); }
-        else { setError("Нет выбранных корректных задач для добавления."); }
+        const tasksToAdd = selectedTaskIndices
+            .map(index => suggestedTasks[index])
+            .map(formatParsedTaskForState) // Преобразуем в формат для состояния App
+            .filter(task => task !== null && task.title); // Фильтруем пустые или невалидные
+
+        if (tasksToAdd.length > 0) {
+            console.log("Добавление задач из AI (финальный формат):", tasksToAdd);
+            onAddSchedules(tasksToAdd);
+            setAiResponseText('');
+            setSuggestedTasks([]);
+            setSelectedTaskIndices([]);
+        } else {
+            setError("Нет выбранных корректных задач для добавления.");
+        }
     };
 
     return (
@@ -381,43 +475,95 @@ ${taskSeparator.trim()}
                     Функциональность AI будет недоступна.
                 </p>
             )}
-            <p>Введите ваш запрос для добавления задач.</p>
+            <p className="intro-text">Введите ваш запрос для добавления задач. AI постарается извлечь информацию и предложить задачи для вашего календаря.</p>
             <div className="ai-prompt-section">
                 <textarea
                     rows="4"
                     value={userPrompt}
                     onChange={(e) => setUserPrompt(e.target.value)}
-                    placeholder="Например: Совещание завтра в 10 и обед с клиентом с 13:30 до 14:30"
+                    placeholder="Например: Совещание завтра в 10 по проекту Альфа и обед с клиентом с 13:30 до 14:30 в кафе Центральное"
                     disabled={isLoading}
                 />
                 <div className="ai-options">
-                    <label>
+                    <label className="ai-checkbox-label">
                         <input type="checkbox" checked={useSystemPrompt} onChange={(e) => setUseSystemPrompt(e.target.checked)} disabled={isLoading} />
-                        Использовать системный промпт (контекст)
+                        Использовать системный промпт (контекст анкеты)
                     </label>
-                    <button onClick={handleSendPrompt} disabled={isLoading || !userPrompt.trim() || !HARDCODED_API_KEY || HARDCODED_API_KEY === 'ВАШ_API_КЛЮЧ_СЮДА'}>
+                    <button
+                        onClick={handleSendPrompt}
+                        disabled={isLoading || !userPrompt.trim() || !HARDCODED_API_KEY || HARDCODED_API_KEY === 'ВАШ_API_КЛЮЧ_СЮДА'}
+                        className="button primary submit-ai-button" // Используем глобальные классы
+                    >
                         {isLoading ? 'Обработка...' : 'Отправить AI'}
                     </button>
                 </div>
             </div>
             {error && <p className="ai-error-message">{error}</p>}
             {isLoading && <div className="ai-loading-indicator">AI думает...</div>}
-            {aiResponseText && !isLoading && ( <div className="ai-raw-response"> <h4>Текстовый ответ AI:</h4> <pre>{aiResponseText}</pre> </div> )}
-            {suggestedTasks.length > 0 && (
-                <div className="ai-response-section">
-                    <h3>Предложенные задачи (разобрано из текста):</h3>
-                    <p>Отметьте задачи, которые хотите добавить.</p>
-                    <ul className="suggested-tasks-list">
-                        {suggestedTasks.map((task, index) => {
-                            const category = categories.find(cat => cat.name === task.categoryGuess);
-                            let displayTime = ''; try { const date = task.start; if (task.isAllDay) { displayTime = date.toLocaleDateString('ru-RU'); } else { displayTime = date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }); if (task.end && !task.isAllDay && task.end.getTime() !== task.start.getTime() ) { displayTime += ` - ${new Date(task.end).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;} } } catch { displayTime = 'Неверная дата'}
-                            return ( <li key={task._originalIndex}> <label> <input type="checkbox" checked={selectedTaskIndices.includes(index)} onChange={() => handleTaskSelectionChange(index)} /> <strong>{task.title}</strong> {category && <span className="task-category-ai" style={{backgroundColor: category.color}}>{category.name}</span>} {!category && task.categoryGuess && <span className="task-category-ai guess">({task.categoryGuess}?)</span>} <span className="task-time-ai"> [{displayTime}]</span> {task.location && <span className="task-location-ai"> @ {task.location}</span>} {task.description && <span className="task-desc-ai"> - {task.description}</span>} </label> </li> );
-                        })}
-                    </ul>
-                    <button onClick={handleAddSelectedTasks} disabled={selectedTaskIndices.length === 0} className="add-selected-button"> Добавить выбранные ({selectedTaskIndices.length}) </button>
+
+            {aiResponseText && !isLoading && (
+                <div className="ai-raw-response">
+                    <h4>Текстовый ответ AI:</h4>
+                    <pre>{aiResponseText}</pre>
                 </div>
             )}
-            {!isLoading && suggestedTasks.length === 0 && aiResponseText && !error && ( <p>AI ответил, но не удалось распознать задачи в его тексте.</p> )}
+
+            {suggestedTasks.length > 0 && !isLoading && (
+                <div className="ai-response-section">
+                    <h3>Предложенные задачи (разобрано из текста):</h3>
+                    <p>Отметьте задачи, которые хотите добавить в календарь.</p>
+                    <ul className="suggested-tasks-list">
+                        {suggestedTasks.map((task, index) => {
+                            const category = categories.find(cat => cat.name.toLowerCase() === task.categoryGuess?.toLowerCase());
+                            let displayTime = '';
+                            try {
+                                const date = task.start; // task.start уже Date объект из парсера
+                                if (task.isAllDay) {
+                                    displayTime = date.toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                                } else {
+                                    displayTime = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                    if (task.end && task.end instanceof Date && !task.isAllDay && task.end.getTime() !== task.start.getTime() ) {
+                                        displayTime += ` - ${new Date(task.end).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
+                                    }
+                                }
+                            } catch { displayTime = 'Ошибка даты/времени'}
+
+                            return (
+                                <li key={task._originalIndex || index} className="suggested-task-item">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedTaskIndices.includes(index)}
+                                        onChange={() => handleTaskSelectionChange(index)}
+                                        id={`suggested-task-${index}`}
+                                    />
+                                    <div className="task-content-wrapper">
+                                        <label htmlFor={`suggested-task-${index}`} className="task-label-clickable"> {/* Оборачиваем в label для кликабельности */}
+                                            <strong className="task-title-ai">{task.title}</strong>
+                                        </label>
+                                        <div className="task-details-ai">
+                                            {category && <span className="task-category-ai" style={{backgroundColor: category.color}}>{category.name}</span>}
+                                            {!category && task.categoryGuess && <span className="task-category-ai guess">({task.categoryGuess}?)</span>}
+                                            {displayTime && <span className="task-time-ai">{displayTime}</span>}
+                                            {task.location && <span className="task-location-ai">{task.location}</span>}
+                                        </div>
+                                        {task.description && <p className="task-desc-ai">{task.description}</p>}
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                    <button
+                        onClick={handleAddSelectedTasks}
+                        disabled={selectedTaskIndices.length === 0}
+                        className="button primary add-selected-button"
+                    >
+                        Добавить выбранные ({selectedTaskIndices.length})
+                    </button>
+                </div>
+            )}
+            {!isLoading && suggestedTasks.length === 0 && aiResponseText && !error && (
+                <p>AI ответил, но не удалось распознать задачи в его тексте. Попробуйте переформулировать запрос.</p>
+            )}
         </div>
     );
 };

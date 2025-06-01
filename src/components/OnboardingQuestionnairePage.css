@@ -1,47 +1,59 @@
 /* src/components/OnboardingQuestionnairePage.css */
+
 .onboarding-page-container {
     display: flex;
-    flex-direction: column; /* Важно для правильного расположения дочерних элементов, если их будет больше */
-    align-items: center;   /* Центрирует .onboarding-form-container по горизонтали */
-    overflow-y: auto;      /* ДОБАВЛЯЕТ вертикальную прокрутку, ЕСЛИ контент не помещается */
-    padding: 20px;         /* Отступы будут внутри прокручиваемой области */
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Начинаем контент сверху, если он не занимает всю высоту */
+    min-height: 100vh; /* Минимальная высота, чтобы фон занимал весь экран */
+    overflow-y: auto; /* Вертикальная прокрутка, если контент превышает viewport */
+    padding: 30px 20px; /* Отступы сверху/снизу и по бокам */
     box-sizing: border-box;
-    background-color: #f4f7f6;
+    background-color: var(--app-bg-main); /* Используем основной фон приложения из App.css */
 }
 
 .onboarding-form-container {
-    background-color: #fff;
+    background-color: var(--app-bg-elements); /* Фон для элементов, как в темной теме */
+    color: var(--app-text-primary); /* Основной текст для темной темы */
     padding: 30px 40px;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); /* Тень для темной темы */
     width: 100%;
-    max-width: 700px;
-    margin-top: 0; /* Например, если padding: 20px сверху в родителе достаточно */
-    margin-bottom: 20px; /* Оставляем отступ снизу для кнопки */
+    max-width: 750px; /* Немного увеличим максимальную ширину */
+    margin-bottom: 30px; /* Отступ снизу от кнопки */
+    border: 1px solid var(--app-border-secondary); /* Граница для темной темы */
 }
 
 .onboarding-form-container h2 {
     text-align: center;
-    margin-bottom: 10px;
-    color: #333;
+    margin-top: 0; /* Убираем верхний отступ у заголовка */
+    margin-bottom: 15px; /* Уменьшаем отступ */
+    color: var(--app-text-primary); /* Цвет для темной темы */
+    font-size: 1.8em; /* Крупнее заголовок */
+    font-weight: 600;
 }
 
-.onboarding-form-container p {
+.onboarding-form-container p.welcome-text { /* Добавим класс для приветственного текста */
     text-align: center;
-    margin-bottom: 25px;
-    color: #666;
-    font-size: 0.95em;
-    line-height: 1.5;
+    margin-bottom: 30px;
+    color: var(--app-text-secondary); /* Вторичный текст для темной темы */
+    font-size: 1em;
+    line-height: 1.6;
 }
 
-/* Стили для .ai-config-form и его элементов остаются как у вас, они хорошие */
+/* Стили для формы, адаптированные под темную тему */
 .ai-config-form label {
     display: block;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
+    margin-top: 18px; /* Немного увеличим отступ */
+    margin-bottom: 6px;
+    font-weight: 500; /* Сделаем чуть менее жирным для лучшей читаемости */
+    color: var(--app-text-secondary); /* Вторичный текст */
+    font-size: 0.9rem;
 }
+.ai-config-form label:first-of-type {
+    margin-top: 0; /* Убираем отступ у первого лейбла в секции */
+}
+
 
 .ai-config-form input[type="text"],
 .ai-config-form input[type="time"],
@@ -50,71 +62,105 @@
 .ai-config-form textarea {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid var(--app-border-secondary); /* Граница для темной темы */
+    border-radius: 6px; /* Скругление как в App.css */
     box-sizing: border-box;
-    font-size: 1em;
+    font-size: 0.95em;
     margin-bottom: 10px;
+    background-color: var(--app-bg-main); /* Фон инпутов чуть темнее фона карточки */
+    color: var(--app-text-primary); /* Цвет текста в инпутах */
 }
+.ai-config-form input[type="text"]::placeholder,
+.ai-config-form textarea::placeholder {
+    color: var(--app-text-placeholder);
+}
+
 
 .ai-config-form input:focus,
 .ai-config-form select:focus,
 .ai-config-form textarea:focus {
-    border-color: #007bff;
+    border-color: var(--app-accent-blue);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 2px rgba(49, 109, 202, 0.4); /* Используем явный RGB для box-shadow */
 }
 
 .ai-config-form fieldset {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 15px;
-    margin-top: 20px;
-    margin-bottom: 10px;
+    border: 1px solid var(--app-border-secondary);
+    border-radius: 6px;
+    padding: 15px 20px; /* Увеличим горизонтальный padding */
+    margin-top: 25px;
+    margin-bottom: 15px;
 }
 
 .ai-config-form legend {
-    font-weight: bold;
-    color: #333;
+    font-weight: 600; /* Жирнее */
+    color: var(--app-text-primary);
     padding: 0 10px;
+    font-size: 1.05em; /* Чуть крупнее */
+    margin-bottom: 10px; /* Отступ под легендой */
 }
 
 .ai-config-form .checkbox-label-inline {
     display: inline-flex;
     align-items: center;
-    margin-right: 15px;
+    margin-right: 20px; /* Больше отступ */
+    margin-bottom: 8px; /* Отступ снизу для группы чекбоксов */
     font-weight: normal;
-    color: #333;
+    color: var(--app-text-primary); /* Цвет текста чекбоксов */
+    font-size: 0.9rem;
 }
 .ai-config-form .checkbox-label-inline input[type="checkbox"] {
     width: auto;
-    margin-right: 5px;
+    margin-right: 8px; /* Больше отступ от текста */
     margin-bottom: 0;
     vertical-align: middle;
+    accent-color: var(--app-accent-blue); /* Цвет галочки */
+    transform: scale(1.1); /* Немного увеличим сам чекбокс */
 }
 
 .ai-config-form textarea {
-    min-height: 80px;
+    min-height: 100px; /* Увеличим минимальную высоту */
     resize: vertical;
 }
 
-.ai-config-form .submit-button,
-.onboarding-form-container .submit-button {
-    display: block;
-    width: auto;
-    min-width: 200px;
-    margin: 30px auto 0;
-    padding: 12px 25px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1.1em;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
+.ai-config-form .form-row, .ai-config-form .form-grid { /* Для группировки полей */
+    display: grid;
+    gap: 15px 20px; /* Пространство между элементами сетки */
+    margin-bottom: 10px;
+}
+.ai-config-form .form-row {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.ai-config-form .form-grid label,
+.ai-config-form .form-row label { /* Убираем верхний отступ у лейблов в сетке */
+    margin-top: 0;
 }
 
-.ai-config-form .submit-button:hover,
+
+.submit-button-container { /* Контейнер для центрирования кнопки */
+    text-align: center; /* Центрирует кнопку, если она inline-block или block с auto-margin */
+    margin-top: 30px;
+}
+
+.onboarding-form-container .submit-button { /* Переименован класс для специфичности */
+    display: inline-block; /* Чтобы margin: auto сработал, если text-align не используется */
+    width: auto;
+    min-width: 250px; /* Шире кнопка */
+    padding: 14px 30px; /* Больше padding */
+    background-color: var(--app-accent-green); /* Зеленый акцент */
+    color: white; /* Белый текст на кнопке */
+    border: none;
+    border-radius: 6px; /* Скругление как у других кнопок */
+    font-size: 1.1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
 .onboarding-form-container .submit-button:hover {
-    background-color: #218838;
+    background-color: #259244; /* Чуть темнее зеленый при наведении */
+    transform: translateY(-1px);
+}
+.onboarding-form-container .submit-button:active {
+    transform: translateY(0px);
 }

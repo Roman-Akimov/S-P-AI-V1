@@ -28,7 +28,6 @@ body {
   background-color: var(--app-bg-main);
   color: var(--app-text-primary);
   line-height: 1.5;
-  overflow: hidden;
 }
 
 .app-container {
@@ -287,7 +286,7 @@ legend { font-weight: 600; padding: 0 10px; color: var(--app-text-primary); }
 /* === CalendarComponent Стили (Calendar.css или сюда же) === */
 .calendar-page-container {
   display: flex; flex-direction: column; height: 100%;
-  box-sizing: border-box; overflow-y: auto; /* Скролл для всей страницы календаря, если не помещается */
+  box-sizing: border-box;  /* Скролл для всей страницы календаря, если не помещается */
 }
 .calendar-page-header-wrapper {
   display: flex; flex-direction: column;

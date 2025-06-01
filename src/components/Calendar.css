@@ -1,36 +1,3 @@
-/* App.css */
-:root {
-    --app-bg-main: #0D1017;
-    --app-bg-sidebar: #171A21;
-    --app-bg-elements: #22272E;
-    --app-bg-hover: rgba(177, 186, 196, 0.12);
-    --app-bg-active: rgba(56, 139, 253, 0.25);
-
-    --app-text-primary: #E6EDF3;
-    --app-text-secondary: #7D8590;
-    --app-text-placeholder: #57606A;
-
-    --app-border-primary: #22272E;
-    --app-border-secondary: #373E47;
-
-    --app-accent-blue: #316DCA;
-    --app-accent-purple: #895AE0;
-    --app-accent-teal: #4AD8D0;
-    --app-accent-red: #DA3633;
-    --app-accent-green: #2DA44E;
-
-    --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-body {
-    margin: 0;
-    font-family: var(--font-family-base);
-    background-color: var(--app-bg-main);
-    color: var(--app-text-primary);
-    line-height: 1.5;
-    overflow: hidden; /* Предотвращаем скролл на body, если 100vh используется для app-container */
-}
-
 .app-container {
     display: flex;
     height: 100vh;
@@ -199,6 +166,7 @@ legend { /* ... как было ... */ }
     flex-direction: column;
     height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .calendar-page-header {
@@ -502,7 +470,9 @@ legend { /* ... как было ... */ }
 .tui-full-calendar-weekday-schedule-title, .tui-full-calendar-allday-schedule-block {
     color: var(--app-text-primary) !important; /* Текст событий */
 }
-
+.tui-full-calendar-timegrid-hour{
+    background-color: var(--app-border-primary);
+}
 /* Границы сетки */
 .tui-full-calendar-timegrid-container,
 .tui-full-calendar-timegrid,

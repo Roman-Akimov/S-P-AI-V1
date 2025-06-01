@@ -44,11 +44,8 @@ const formatDateToDateString = (dateObj) => {
     return `${year}-${month}-${day}`;
 };
 
-// Иконки-плейсхолдеры (ЗАМЕНИТЕ НА РЕАЛЬНЫЕ ИКОНКИ, например, из react-icons)
+// Иконки-плейсхолдеры
 const SearchIcon = () => <span role="img" aria-label="search" style={{display: 'flex', alignItems: 'center', color: 'var(--app-text-placeholder)'}}>🔍</span>;
-const NotificationIcon = () => <span role="img" aria-label="notifications" style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center' }}>🔔</span>;
-// const SettingsIcon = () => <span role="img" aria-label="settings" style={{ fontSize: '1.1em' }}>⚙️</span>;
-const CollapseSidebarIcon = () => <span role="img" aria-label="collapse sidebar" style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center' }}>«</span>;
 
 
 // Компонент CalendarComponent
@@ -60,7 +57,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
 
     const [currentCalendarTitle, setCurrentCalendarTitle] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeView, setActiveView] = useState('month'); // Начальный вид
+    const [activeView, setActiveView] = useState('month');
 
     const calendarContainerRef = useRef(null);
     const calendarInstanceRef = useRef(null);
@@ -160,6 +157,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         setModalErrorMessage('');
         if (calendarInstanceRef.current) { calendarInstanceRef.current.render(); }
     };
+
     const handleTUICreate = useCallback((event) => {
         const currentCategoriesList = Array.isArray(categoriesRef.current) ? categoriesRef.current : [];
         const defaultCategory = currentCategoriesList.find(c => c.checked !== false) || currentCategoriesList[0] || { id: null };
@@ -168,12 +166,12 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
             location: '', priority: 'Medium', subtasks: [], description: '', completed: false
         });
         openModal(scheduleDataForModal, false);
-    }, []); // Removed categoriesRef dependency as it's a ref
+    }, []);
 
     const handleTUIClick = useCallback((event) => {
         if (!event.schedule) return;
         openModal(formatScheduleForModalRef.current(event.schedule), true);
-    }, []); // Removed formatScheduleForModalRef dependency as it's a ref
+    }, []);
 
     const handleTUIUpdate = useCallback((event) => {
         const { schedule, changes } = event;
@@ -190,35 +188,57 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
             start: formattedForModalStrings.start, end: formattedForModalStrings.end,
         });
         onSchedulesChange(prev => prev.map(s => s.id === updatedDataForState.id ? updatedDataForState : s));
-    }, [formatModalDataForState, onSchedulesChange]); // formatScheduleForModalRef is a ref
+    }, [formatModalDataForState, onSchedulesChange]);
 
     const updateCalendarTitle = useCallback(() => {
         if (!calendarInstanceRef.current) return;
         const cal = calendarInstanceRef.current;
         const viewName = cal.getViewName();
-        const date = cal.getDate().toDate();
+        const date = cal.getDate().toDate(); // Преобразуем TZDate в JS Date
 
         let titleText = '';
+        const ruLocale = 'ru-RU'; // Для локализации
+
         if (viewName === 'month') {
-            titleText = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
-            if (!titleText.endsWith(' г.')) { titleText += ' г.'; }
+            titleText = date.toLocaleDateString(ruLocale, { month: 'long', year: 'numeric' });
+            // Добавляем " г." если его нет (toLocaleString может не добавлять)
+            if (titleText && !titleText.toLowerCase().endsWith(' г.')) {
+                const yearStr = date.getFullYear().toString();
+                if (titleText.endsWith(yearStr)) {
+                    titleText = titleText.slice(0, -yearStr.length) + yearStr + " г.";
+                } else {
+                    titleText += " г.";
+                }
+            }
         } else if (viewName === 'week') {
             const startDate = cal.getDateRangeStart().toDate();
             const endDate = cal.getDateRangeEnd().toDate();
-            const startMonth = startDate.toLocaleString('ru-RU', { month: 'short' });
-            const endMonth = endDate.toLocaleString('ru-RU', { month: 'short' });
-            if (startDate.getFullYear() !== endDate.getFullYear()) {
-                titleText = `${startDate.getDate()} ${startMonth} ${startDate.getFullYear()} г. - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+            const startDay = startDate.getDate();
+            const endDay = endDate.getDate();
+            const startMonth = startDate.toLocaleString(ruLocale, { month: 'short' }).replace('.', ''); // Убираем точку после сокр. месяца
+            const endMonth = endDate.toLocaleString(ruLocale, { month: 'short' }).replace('.', '');
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+
+            if (startYear !== endYear) {
+                titleText = `${startDay} ${startMonth} ${startYear} г. - ${endDay} ${endMonth} ${endYear} г.`;
             } else if (startDate.getMonth() !== endDate.getMonth()) {
-                titleText = `${startDate.getDate()} ${startMonth} - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+                titleText = `${startDay} ${startMonth} - ${endDay} ${endMonth} ${endYear} г.`;
             } else {
-                titleText = `${startDate.getDate()} - ${endDate.getDate()} ${endMonth} ${endDate.getFullYear()} г.`;
+                titleText = `${startDay} - ${endDay} ${endMonth} ${endYear} г.`;
             }
-        } else { // day or custom view like '4day'
-            titleText = date.toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-            if (!titleText.endsWith(' г.')) { titleText += ' г.'; }
+        } else { // day
+            titleText = date.toLocaleDateString(ruLocale, { day: 'numeric', month: 'long', year: 'numeric' });
+            if (titleText && !titleText.toLowerCase().endsWith(' г.')) {
+                const yearStr = date.getFullYear().toString();
+                if (titleText.endsWith(yearStr)) {
+                    titleText = titleText.slice(0, -yearStr.length) + yearStr + " г.";
+                } else {
+                    titleText += " г.";
+                }
+            }
         }
-        setCurrentCalendarTitle(titleText);
+        setCurrentCalendarTitle(titleText.charAt(0).toUpperCase() + titleText.slice(1)); // Первая буква заглавная
     }, []);
 
     useEffect(() => {
@@ -239,7 +259,8 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
         if (isFirstInit) {
             cal = new Calendar(calendarContainerRef.current, {
                 defaultView: activeView,
-                taskView: false, scheduleView: ['time', 'allday'],
+                taskView: ['task'], // Включаем отображение task-задач
+                scheduleView: ['allday', 'time'], // Включаем отображение allday и time задач
                 useCreationPopup: false, useDetailPopup: false,
                 calendars: tuiCalendarsDefinition,
                 month: { startDayOfWeek: 1, daynames: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], isAlways6Weeks: false, visibleWeeksCount: 6 },
@@ -247,6 +268,7 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
                 template: {
                     alldayTitle: () => 'Весь день',
                     timegridDisplayPrimayTime: (time) => `${String(time.hour).padStart(2, '0')}:00`,
+                    // Убираем monthDayname, т.к. TUI сам отображает дни недели в месяце
                 }
             });
             calendarInstanceRef.current = cal;
@@ -307,14 +329,21 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
 
     const changeView = (viewName) => {
         let tuiViewName = viewName;
+        // Логика для "4day" или других кастомных видов, если TUI их не поддерживает напрямую
         if (viewName === '4day') {
-            // TODO: Implement logic for '4day' view if TUI doesn't support it directly
-            // For now, let it be 'week' or some other fallback
-            tuiViewName = 'week';
-            console.log("4-day view selected, TUI will show: " + tuiViewName);
+            // TUI Calendar не имеет встроенного '4day' вида.
+            // Можно использовать 'custom' вид или расширить week/day.
+            // Для простоты, пока оставим как 'week' или 'day'.
+            // Или можно попробовать установить `visibleWeeksCount: 0, workweek: true, narrowWeekend: true, daynames: [...]`
+            // и `visibleDays: 4` если бы такая опция была.
+            // Простейший вариант - использовать week и просто стилизовать/скрыть ненужные дни.
+            // Либо показывать 'day' и делать свою навигацию на 4 дня.
+            // Пока оставляем возможность выбора, но фактически TUI не отрисует '4day'.
+            // console.warn("4-day view is not directly supported by TUI Calendar, showing 'week' or current TUI view.");
+            tuiViewName = 'week'; // Как запасной вариант
         }
         calendarInstanceRef.current?.changeView(tuiViewName, true);
-        setActiveView(viewName);
+        setActiveView(viewName); // Сохраняем выбранный пользователем вид для UI
         updateCalendarTitle();
     };
     const navigate = (direction) => {
@@ -372,101 +401,107 @@ const CalendarComponent = ({ allCategories, schedules: schedulesFromApp, onSched
 
     return (
         <div className="calendar-page-container">
-            <div className="calendar-page-header-wrapper">
+            <div className="calendar-page-header-wrapper"> {/* Обертка для всего хедера */}
                 <div className="calendar-header-top-row">
                     <div className="calendar-title-main">
-                        <h1>{'Календарь, '}{currentCalendarTitle}</h1>
-                    </div>
-                    <div className="calendar-header-actions">
-                        <div className="search-bar-container">
-                            <SearchIcon />
-                            <input
-                                type="text"
-                                placeholder="Поиск"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="calendar-search-input"
-                            />
-                        </div>
-                    </div>
+                        {/* <span className="calendar-icon-placeholder"> { </span> */}
+                    <h1>{currentCalendarTitle}</h1> {/* Убрал "Календарь, " для соответствия скриншоту */}
                 </div>
-
-                <div className="calendar-header-bottom-row">
-                    <div className="calendar-view-controls">
-                        <button onClick={() => changeView('day')} className={`button view-btn ${activeView === 'day' ? 'active-view' : ''}`}>День</button>
-                        <button onClick={() => changeView('week')} className={`button view-btn ${activeView === 'week' ? 'active-view' : ''}`}>Неделя</button>
-                        <button onClick={() => changeView('month')} className={`button view-btn ${activeView === 'month' ? 'active-view' : ''}`}>Месяц</button>
+                <div className="calendar-header-actions">
+                    <div className="search-bar-container">
+                        <SearchIcon />
+                        <input
+                            type="text"
+                            placeholder="Поиск"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="calendar-search-input"
+                        />
                     </div>
-                    <div className="calendar-nav-controls">
-                        <button onClick={() => navigate('prev')} className="button iconic nav-arrow" title="Назад">‹</button>
-                        <button onClick={() => navigate('today')} className="button today-btn">Сегодня</button>
-                        <button onClick={() => navigate('next')} className="button iconic nav-arrow" title="Вперед">›</button>
-                    </div>
+                    {/* Другие иконки действий, если нужны (например, уведомления) */}
+                    {/* <button className="button iconic secondary" title="Уведомления"><NotificationIcon /></button> */}
+                    {/* <button className="button iconic secondary" title="Свернуть сайдбар"><CollapseSidebarIcon /></button> */}
                 </div>
             </div>
 
-            <div ref={calendarContainerRef} className="tui-calendar-container-customtheme"></div>
-
-            {modalOpen && currentScheduleData && (
-                <div className="modal-backdrop">
-                    <div className="modal-content">
-                        <h3>{isEditing ? 'Редактировать Задачу' : 'Новая Задача'}</h3>
-                        {modalErrorMessage && (<div className="modal-error-message">{modalErrorMessage}</div>)}
-                        {isEditing && (
-                            <label className="modal-checkbox-label main-task-completed">
-                                <input type="checkbox" name="completed" checked={!!currentScheduleData.completed} onChange={handleToggleTaskCompleted} />
-                                {currentScheduleData.completed ? 'Задача выполнена' : 'Отметить как выполненную'}
-                            </label>
-                        )}
-                        <label htmlFor="taskTitleInput">Название:</label>
-                        <input ref={titleInputRef} id="taskTitleInput" type="text" name="title" value={currentScheduleData.title} onChange={handleModalChange} required />
-                        <label>Категория:
-                            <select name="categoryId" value={currentScheduleData.categoryId || ''} onChange={handleModalChange}>
-                                <option value="">Без категории</option>
-                                {(Array.isArray(categoriesRef.current) ? categoriesRef.current : []).map(cat => ( <option key={cat.id} value={cat.id}>{cat.name}</option> ))}
-                            </select>
-                        </label>
-                        <div className="modal-datetime-row">
-                            <label className="modal-datetime-item">Начало:
-                                <input type={currentScheduleData.isAllDay ? "date" : "datetime-local"} name="start" value={currentScheduleData.start || ''} onChange={handleModalChange} />
-                            </label>
-                            {!currentScheduleData.isAllDay && (
-                                <label className="modal-datetime-item">Конец:
-                                    <input type="datetime-local" name="end" value={currentScheduleData.end || ''} onChange={handleModalChange} min={currentScheduleData.isAllDay ? undefined : currentScheduleData.start} />
-                                </label>
-                            )}
-                            <label className="modal-checkbox-label">
-                                <input type="checkbox" name="isAllDay" checked={!!currentScheduleData.isAllDay} onChange={handleModalChange} /> Весь день
-                            </label>
-                        </div>
-                        <label>Приоритет:
-                            <select name="priority" value={currentScheduleData.priority} onChange={handlePriorityChange}>
-                                <option value="Low">Низкий</option> <option value="Medium">Средний</option> <option value="High">Высокий</option>
-                            </select>
-                        </label>
-                        <label>Место:<input type="text" name="location" value={currentScheduleData.location} onChange={handleModalChange} /></label>
-                        <label>Описание:<textarea name="description" value={currentScheduleData.description} onChange={handleModalChange} rows={3}></textarea></label>
-                        <div className="subtasks-section">
-                            <h4>Чек-лист:</h4>
-                            {currentScheduleData.subtasks.map((subtask, index) => (
-                                <div key={subtask.id || index} className="subtask-item">
-                                    <input type="checkbox" checked={!!subtask.completed} onChange={(e) => handleSubtaskChange(index, 'completed', e.target.checked)} />
-                                    <input type="text" value={subtask.text} onChange={(e) => handleSubtaskChange(index, 'text', e.target.value)} placeholder="Подзадача" style={subtask.completed ? { textDecoration: 'line-through', opacity: 0.7 } : {}}/>
-                                    <button type="button" onClick={() => handleRemoveSubtask(index)} className="remove-subtask-btn plain">×</button>
-                                </div>
-                            ))}
-                            <button type="button" onClick={handleAddSubtask} className="add-subtask-btn button secondary">+ Добавить</button>
-                        </div>
-                        <div className="modal-actions">
-                            <button type="button" onClick={handleSaveEvent} className="button primary">{isEditing ? 'Сохранить' : 'Создать'}</button>
-                            {isEditing && (<button type="button" onClick={handleDeleteEvent} className="button danger">Удалить</button>)}
-                            <button type="button" onClick={closeModal} className="button secondary">Отмена</button>
-                        </div>
-                    </div>
+            <div className="calendar-header-bottom-row">
+                <div className="calendar-view-controls">
+                    <button onClick={() => changeView('day')} className={`button view-btn ${activeView === 'day' ? 'active-view' : ''}`}>День</button>
+                    <button onClick={() => changeView('week')} className={`button view-btn ${activeView === 'week' ? 'active-view' : ''}`}>Неделя</button>
+                    <button onClick={() => changeView('month')} className={`button view-btn ${activeView === 'month' ? 'active-view' : ''}`}>Месяц</button>
+                    {/* Можно добавить "4 дня", если реализуете кастомный вид или его эмуляцию */}
+                    {/* <button onClick={() => changeView('4day')} className={`button view-btn ${activeView === '4day' ? 'active-view' : ''}`}>4 дня</button> */}
                 </div>
-            )}
+                <div className="calendar-nav-controls">
+                    <button onClick={() => navigate('prev')} className="button iconic nav-arrow" title="Назад">‹</button>
+                    <button onClick={() => navigate('today')} className="button today-btn">Сегодня</button>
+                    <button onClick={() => navigate('next')} className="button iconic nav-arrow" title="Вперед">›</button>
+                </div>
+            </div>
         </div>
-    );
+
+    <div ref={calendarContainerRef} className="tui-calendar-container-customtheme"></div>
+
+    {modalOpen && currentScheduleData && (
+        <div className="modal-backdrop">
+            <div className="modal-content">
+                <h3>{isEditing ? 'Редактировать Задачу' : 'Новая Задача'}</h3>
+                {modalErrorMessage && (<div className="modal-error-message">{modalErrorMessage}</div>)}
+                {isEditing && (
+                    <label className="modal-checkbox-label main-task-completed">
+                        <input type="checkbox" name="completed" checked={!!currentScheduleData.completed} onChange={handleToggleTaskCompleted} />
+                        {currentScheduleData.completed ? 'Задача выполнена' : 'Отметить как выполненную'}
+                    </label>
+                )}
+                <label htmlFor="taskTitleInput">Название:</label>
+                <input ref={titleInputRef} id="taskTitleInput" type="text" name="title" value={currentScheduleData.title} onChange={handleModalChange} required />
+                <label>Категория:
+                    <select name="categoryId" value={currentScheduleData.categoryId || ''} onChange={handleModalChange}>
+                        <option value="">Без категории</option>
+                        {(Array.isArray(categoriesRef.current) ? categoriesRef.current : []).map(cat => ( <option key={cat.id} value={cat.id}>{cat.name}</option> ))}
+                    </select>
+                </label>
+                <div className="modal-datetime-row">
+                    <label className="modal-datetime-item">Начало:
+                        <input type={currentScheduleData.isAllDay ? "date" : "datetime-local"} name="start" value={currentScheduleData.start || ''} onChange={handleModalChange} />
+                    </label>
+                    {!currentScheduleData.isAllDay && (
+                        <label className="modal-datetime-item">Конец:
+                            <input type="datetime-local" name="end" value={currentScheduleData.end || ''} onChange={handleModalChange} min={currentScheduleData.isAllDay ? undefined : currentScheduleData.start} />
+                        </label>
+                    )}
+                    <label className="modal-checkbox-label">
+                        <input type="checkbox" name="isAllDay" checked={!!currentScheduleData.isAllDay} onChange={handleModalChange} /> Весь день
+                    </label>
+                </div>
+                <label>Приоритет:
+                    <select name="priority" value={currentScheduleData.priority} onChange={handlePriorityChange}>
+                        <option value="Low">Низкий</option> <option value="Medium">Средний</option> <option value="High">Высокий</option>
+                    </select>
+                </label>
+                <label>Место:<input type="text" name="location" value={currentScheduleData.location} onChange={handleModalChange} /></label>
+                <label>Описание:<textarea name="description" value={currentScheduleData.description} onChange={handleModalChange} rows={3}></textarea></label>
+                <div className="subtasks-section">
+                    <h4>Чек-лист:</h4>
+                    {currentScheduleData.subtasks.map((subtask, index) => (
+                        <div key={subtask.id || index} className="subtask-item">
+                            <input type="checkbox" checked={!!subtask.completed} onChange={(e) => handleSubtaskChange(index, 'completed', e.target.checked)} />
+                            <input type="text" value={subtask.text} onChange={(e) => handleSubtaskChange(index, 'text', e.target.value)} placeholder="Подзадача" style={subtask.completed ? { textDecoration: 'line-through', opacity: 0.7 } : {}}/>
+                            <button type="button" onClick={() => handleRemoveSubtask(index)} className="remove-subtask-btn plain">×</button>
+                        </div>
+                    ))}
+                    <button type="button" onClick={handleAddSubtask} className="add-subtask-btn button secondary">+ Добавить</button>
+                </div>
+                <div className="modal-actions">
+                    <button type="button" onClick={handleSaveEvent} className="button primary">{isEditing ? 'Сохранить' : 'Создать'}</button>
+                    {isEditing && (<button type="button" onClick={handleDeleteEvent} className="button danger">Удалить</button>)}
+                    <button type="button" onClick={closeModal} className="button secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+    )}
+</div>
+);
 };
 
 export default CalendarComponent;

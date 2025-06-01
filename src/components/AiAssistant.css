@@ -1,55 +1,69 @@
-/* AiAssistant.css - Стили, адаптированные под Calendar.css */
+/* src/components/AiAssistant.css */
 
 /* --- Основной контейнер вкладки AI Assistant --- */
 .ai-assistant-container {
-    flex-grow: 1;
-    height: 100%;
-    padding: 20px;
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* ГЛАВНЫЙ СКРОЛЛ ДЛЯ ВСЕЙ ВКЛАДКИ. ЭТО ХОРОШО. */
-    background-color: #f8f9fa;
-    color: #333;
+    height: 100%; /* Занимает всю высоту родителя (.app-content) */
+    padding: 25px; /* Единый отступ для всей страницы */
+    box-sizing: border-box;
+    overflow-y: auto; /* Главный скролл для всей вкладки */
+    background-color: var(--app-bg-main); /* Фон страницы */
+    color: var(--app-text-primary);
 }
 
 /* Заголовок вкладки */
 .ai-assistant-container h2 {
-    font-size: 1.1rem;
+    font-size: 1.6rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--app-text-primary);
     margin-top: 0;
     margin-bottom: 20px;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 10px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--app-border-secondary);
 }
 
 /* Вступительный текст */
-.ai-assistant-container p {
-    font-size: 0.9rem;
-    color: #495057;
-    line-height: 1.5;
-    margin-bottom: 15px;
+.ai-assistant-container .intro-text { /* Добавляем класс для специфичности */
+    font-size: 0.95rem;
+    color: var(--app-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 25px;
 }
 
 /* Секция ввода промпта */
 .ai-prompt-section {
-    margin-bottom: 25px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: var(--app-bg-elements); /* Фон для секции */
+    border-radius: 8px;
+    border: 1px solid var(--app-border-secondary);
 }
 
 /* Текстовое поле для промпта */
 .ai-prompt-section textarea {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    padding: 12px 15px;
+    border: 1px solid var(--app-border-primary);
+    border-radius: 6px;
     box-sizing: border-box;
-    font-size: 0.95rem;
+    font-size: 1rem; /* Чуть крупнее для промпта */
     margin-bottom: 15px;
-    min-height: 80px;
+    min-height: 100px; /* Увеличим мин. высоту */
     resize: vertical;
     font-family: inherit;
+    background-color: var(--app-bg-main); /* Фон инпута */
+    color: var(--app-text-primary);
 }
+.ai-prompt-section textarea::placeholder {
+    color: var(--app-text-placeholder);
+}
+.ai-prompt-section textarea:focus {
+    border-color: var(--app-accent-blue);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(49, 109, 202, 0.4); /* Явный цвет для тени */
+}
+
 
 /* Опции под текстовым полем (чекбокс, кнопка) */
 .ai-options {
@@ -57,238 +71,215 @@
     justify-content: space-between;
     align-items: center;
     gap: 15px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* Перенос на новую строку на малых экранах */
 }
 
 /* Стилизация label для чекбокса */
-.ai-options label {
+.ai-options label.ai-checkbox-label { /* Добавляем класс для специфичности */
     display: flex;
     align-items: center;
     cursor: pointer;
     font-size: 0.9rem;
-    color: #495057;
+    color: var(--app-text-secondary);
     gap: 8px;
 }
-.ai-options label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #0d6efd;
+.ai-options label.ai-checkbox-label input[type="checkbox"] {
+    width: auto; /* Убираем фикс. ширину/высоту, используем стили из App.css */
+    height: auto;
+    accent-color: var(--app-accent-blue);
     margin: 0;
     flex-shrink: 0;
+    transform: scale(1.1); /* Чуть крупнее */
 }
 
-/* Кнопка "Отправить AI" */
-.ai-options button {
-    padding: 8px 16px;
-    background-color: #0d6efd;
-    color: white;
-    border: 1px solid #0d6efd;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+/* Кнопка "Отправить AI" - используем глобальные стили */
+.ai-options button.submit-ai-button {
+    /* Использует .button.primary из App.css */
+    min-width: 150px; /* Минимальная ширина */
 }
-.ai-options button:hover:not(:disabled) {
-    background-color: #0b5ed7;
-    border-color: #0a58ca;
-}
-.ai-options button:disabled {
-    background-color: #adb5bd;
-    border-color: #adb5bd;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+
 
 /* Сообщения об ошибках */
 .ai-error-message {
-    background-color: #f8d7da;
-    color: #842029;
-    border: 1px solid #f5c2c7;
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-top: 15px;
+    background-color: rgba(218, 54, 51, 0.15); /* Полупрозрачный фон */
+    color: var(--app-accent-red);
+    border: 1px solid var(--app-accent-red);
+    padding: 12px 18px; /* Больше padding */
+    border-radius: 6px;
+    margin-top: 20px;
+    margin-bottom: 10px; /* Отступ снизу */
     font-size: 0.9rem;
 }
 
 /* Индикатор загрузки */
 .ai-loading-indicator {
-    margin-top: 15px;
+    margin-top: 20px;
+    margin-bottom: 10px;
     padding: 10px;
     text-align: center;
-    font-size: 0.9rem;
-    color: #6c757d;
+    font-size: 0.95rem;
+    color: var(--app-text-secondary);
 }
+.ai-loading-indicator::before { /* Простой спиннер */
+    content: '⏳';
+    margin-right: 8px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 
 /* Блок с "сырым" текстовым ответом AI */
 .ai-raw-response {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px dashed #ced4da;
-    background-color: #f8f9fa;
-    border-radius: 4px;
+    margin-top: 25px;
+    padding: 20px;
+    border: 1px solid var(--app-border-primary); /* Граница */
+    background-color: var(--app-bg-elements); /* Фон */
+    border-radius: 8px;
 }
 .ai-raw-response h4 {
     margin-top: 0;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: #6c757d;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: var(--app-text-secondary);
     font-weight: 500;
 }
 .ai-raw-response pre {
     white-space: pre-wrap;
     word-wrap: break-word;
     font-size: 0.85em;
-    color: #495057;
+    color: var(--app-text-primary);
     margin: 0;
-    max-height: 150px; /* Оставляем для сырого ответа, чтобы он не был слишком длинным */
-    overflow-y: auto;
-    background-color: #fff;
-    padding: 8px;
-    border: 1px solid #e9ecef;
-    border-radius: 3px;
+    max-height: 200px; /* Увеличим макс. высоту */
+    overflow-y: auto; /* Скролл для pre, если много текста */
+    background-color: var(--app-bg-main); /* Фон для pre блока */
+    padding: 10px 12px;
+    border: 1px solid var(--app-border-secondary);
+    border-radius: 4px;
 }
 
 /* Секция с предложенными задачами */
 .ai-response-section {
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef;
-    /* flex-grow: 1; */ /* <--- ЗАКОММЕНТИРУЕМ ЭТО. Пусть высота определяется контентом */
-    /* Если .ai-assistant-container имеет overflow-y: auto, то эта секция будет */
-    /* просто увеличивать общую высоту контента, вызывая скролл у родителя. */
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--app-border-secondary);
     display: flex;
     flex-direction: column;
-    /* min-height: 0; */ /* Это было полезно С flex-grow, без него может не понадобиться */
-    /* но можно оставить, вреда не принесет */
 }
 .ai-response-section h3 {
     margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1rem;
-    color: #495057;
-    font-weight: 600;
+    margin-bottom: 20px;
+    font-size: 1.2rem; /* Размер как у заголовков секций в профиле */
+    color: var(--app-text-primary);
+    font-weight: 500;
 }
 
 /* Список предложенных задач */
 .suggested-tasks-list {
     list-style: none;
     padding: 0;
-    margin: 0 0 20px 0;
-    /* overflow-y: auto; */ /* <--- ЗАКОММЕНТИРУЕМ ИЛИ УДАЛИМ. Скролл будет у .ai-assistant-container */
-    /* Если вы ХОТИТЕ отдельный скролл для этого списка, если он ОЧЕНЬ длинный, */
-    /* тогда раскомментируйте это и добавьте max-height, например: */
-    /* max-height: 40vh; (40% высоты видимой области) */
-    /* overflow-y: auto; */
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    background-color: #fff;
-    /* flex-shrink: 0; */ /* <--- ИЗМЕНЕНИЕ: По умолчанию flex-shrink: 1. Установка в 0 */
-    /* предотвратит сжатие списка, если родитель .ai-response-section */
-    /* будет пытаться его сжать (маловероятно без flex-grow у родителя, но для надежности) */
-    /* Однако, если .ai-response-section не flex-контейнер (а он им является), */
-    /* то это свойство не будет иметь эффекта на сам список. */
-    /* КЛЮЧЕВОЕ - убрать max-height и ненужный overflow-y здесь, если скролл у родителя */
+    margin: 0 0 25px 0;
+    border: 1px solid var(--app-border-secondary);
+    border-radius: 8px;
+    background-color: var(--app-bg-elements);
+    /* Скролл будет у родителя .ai-assistant-container */
 }
-.suggested-tasks-list li {
+.suggested-tasks-list li.suggested-task-item { /* Добавляем класс для специфичности */
     padding: 12px 15px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--app-border-primary);
     font-size: 0.9rem;
-    color: #333;
+    color: var(--app-text-primary);
+    display: flex; /* Для выравнивания чекбокса и контента */
+    align-items: flex-start; /* Выравниваем по верху, если текст многострочный */
+    gap: 12px; /* Отступ между чекбоксом и контентом */
 }
-.suggested-tasks-list li:last-child {
+.suggested-tasks-list li.suggested-task-item:last-child {
     border-bottom: none;
 }
 
-/* Label внутри элемента списка задач */
-.suggested-tasks-list li label {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    cursor: pointer;
-    flex-wrap: wrap;
-}
-.suggested-tasks-list li input[type="checkbox"] {
-    margin-top: 2px;
-    width: 16px;
-    height: 16px;
-    accent-color: #0d6efd;
+.suggested-tasks-list li.suggested-task-item input[type="checkbox"] {
+    margin-top: 3px; /* Небольшой сдвиг для лучшего выравнивания с текстом */
+    accent-color: var(--app-accent-blue);
     flex-shrink: 0;
+    transform: scale(1.1);
+}
+
+.task-content-wrapper { /* Обертка для всего текстового контента задачи */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 /* Стили для деталей задачи в списке */
-.suggested-tasks-list strong {
-    color: #212529;
-    font-weight: 600;
-    margin-right: 5px;
-    /* flex-basis: 100%; */ /* Можно убрать, если не нужно, чтобы заголовок всегда был на новой строке */
-    /* order: -1; */ /* Если хотим чекбокс первым, а потом текст */
-    /* margin-left: 26px; */ /* Убираем, если flex-basis: 100% убран, используем gap */
-    margin-bottom: 3px;
+.suggested-tasks-list strong.task-title-ai { /* Класс для заголовка */
+    color: var(--app-text-primary);
+    font-weight: 500; /* Не слишком жирный */
+    margin-bottom: 5px; /* Отступ под заголовком */
+    font-size: 0.95rem;
+    display: block; /* Чтобы занимал всю ширину, если нужно */
+}
+
+.task-details-ai { /* Контейнер для времени, места, категории */
+    display: flex;
+    flex-wrap: wrap; /* Перенос на новую строку, если не помещается */
+    gap: 5px 10px; /* Отступы между деталями */
+    margin-bottom: 5px; /* Отступ под деталями перед описанием */
 }
 
 /* Метка категории */
 .task-category-ai {
-    font-size: 0.8em;
-    padding: 2px 6px;
-    color: white;
-    border-radius: 3px;
-    margin-right: 6px;
+    font-size: 0.75rem;
+    padding: 2px 7px;
+    color: var(--app-bg-main); /* Темный текст по умолчанию */
+    border-radius: 4px;
     flex-shrink: 0;
     display: inline-block;
     line-height: 1.4;
+    font-weight: 500;
 }
-.task-category-ai.guess {
-    background-color: #ffc107 !important;
-    color: #333;
+.task-category-ai.guess { /* Если категория предположена AI */
+    background-color: var(--app-accent-teal) !important; /* Используем ваш цвет для Teal */
+    /* color: #333; /* Если фон светлый */
 }
 
-/* Время, место, описание */
+/* Время, место */
 .task-time-ai,
-.task-location-ai,
+.task-location-ai {
+    font-size: 0.8rem;
+    color: var(--app-text-secondary);
+    line-height: 1.4;
+    background-color: var(--app-bg-main); /* Фон для плашек */
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--app-border-primary);
+}
+.task-location-ai::before {
+    content: "📍 "; /* Иконка для места */
+    margin-right: 3px;
+}
+.task-time-ai::before {
+    content: "🕒 "; /* Иконка для времени */
+    margin-right: 3px;
+}
+
+
+/* Описание */
 .task-desc-ai {
     font-size: 0.85em;
-    color: #6c757d;
-    margin-right: 8px;
-    line-height: 1.4;
-}
-.task-location-ai::before { /* Убрал content: "@ ", чтобы не дублировалось, если AI уже добавил @ */
-    /* content: "@ "; */
-}
-.task-desc-ai {
-    /* display: block; */ /* Можно убрать, чтобы описание было в потоке, если короткое */
-    /* width: 100%; */   /* Убираем, если display: block убран */
-    /* margin-left: 26px; */ /* Убираем, если display: block убран */
+    color: var(--app-text-secondary);
     font-style: italic;
-    margin-top: 2px;
-    flex-basis: 100%; /* Заставим описание занимать новую строку, если оно есть */
-    margin-left: 26px; /* Отступ, если описание на новой строке */
+    line-height: 1.5;
+    width: 100%; /* Занимает всю ширину в .task-content-wrapper */
+    margin-top: 3px;
 }
 
-/* Кнопка "Добавить выбранные" */
+/* Кнопка "Добавить выбранные" - используем глобальные стили */
 .add-selected-button {
-    padding: 8px 16px;
-    background-color: #198754;
-    color: white;
-    border: 1px solid #198754;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    /* margin-top: auto; */ /* Это прижмет кнопку к низу, ЕСЛИ .ai-response-section имеет flex-grow: 1 и высоту. */
-    /* Если .ai-response-section растет по контенту, то auto может не дать нужного эффекта. */
-    /* Оставляем пока так, но если кнопка "улетает", можно убрать. */
-    align-self: flex-start;
-    margin-top: 10px; /* Добавим небольшой отступ сверху, если margin-top: auto не работает как надо */
-}
-.add-selected-button:hover:not(:disabled) {
-    background-color: #157347;
-    border-color: #146c43;
-}
-.add-selected-button:disabled {
-    background-color: #adb5bd;
-    border-color: #adb5bd;
-    cursor: not-allowed;
-    opacity: 0.7;
+    /* Использует .button.primary или .button.secondary из App.css */
+    align-self: flex-start; /* Выравниваем по левому краю */
+    margin-top: 15px;
+    min-width: 200px;
 }
