@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const url = require('url'); // Добавлен для формирования URL для продакшена
+const isDev = require('electron-is-dev');
 const mysql = require('mysql2/promise');
 
 const dbConfig = {
@@ -22,7 +24,6 @@ async function connectToDB() {
         if (!dbConnection) {
             console.log("Attempting to create new MySQL connection...");
             dbConnection = await mysql.createConnection(dbConfig);
-            // Для mysql2/promise connect() не нужен после createConnection, он подключается автоматически.
             console.log("Подключение к серверу MySQL успешно установлено (Main Process)");
         }
         await ensureTablesExist();
@@ -31,7 +32,7 @@ async function connectToDB() {
         if (dbConnection) {
             try { await dbConnection.end(); } catch (e) { console.error("Error closing problematic DB connection:", e); }
         }
-        dbConnection = null; // Важно сбросить, чтобы не использовать невалидное соединение
+        dbConnection = null;
     }
 }
 
@@ -60,21 +61,48 @@ function createWindow() {
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'preload.js'), // __dirname указывает на текущую папку (где main.js)
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false
-        }
+            sandbox: false // Если preload.js требует доступ к fs или другим модулям Node, sandbox лучше false
+        },
+        // Установка иконки окна приложения
+        // Предполагается, что иконка logotype.png лежит в корне проекта (рядом с main.js)
+        // или в папке public для разработки и в корне build для продакшена.
+        // Для Electron Builder иконки для дистрибутива настраиваются в package.json.
+        // Эта иконка - для окна запущенного приложения.
+        icon: path.join(__dirname, 'logotype.png') // Укажите правильный путь к вашей иконке окна
+                                                   // Если иконка в папке assets: path.join(__dirname, 'assets', 'logotype.png')
     });
-     mainWindow.loadURL('http://localhost:3000'); // Для React Dev Server
 
-    // mainWindow.webContents.openDevTools();
+    // Определяем URL для загрузки
+    const startUrl = isDev
+        ? 'http://localhost:3000' // URL для React Dev Server
+        : url.format({ // URL для собранного приложения
+            pathname: path.join(__dirname, '../build/index.html'), // Путь к index.html после сборки React
+            protocol: 'file:',
+            slashes: true,
+        });
+
+    mainWindow.loadURL(startUrl);
+
+    if (isDev) {
+        mainWindow.webContents.openDevTools(); // Открывать DevTools только в режиме разработки
+    }
+
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
 }
 
 app.whenReady().then(async () => {
     await connectToDB();
     createWindow();
-    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        }
+    });
 });
 
 app.on('window-all-closed', async () => {
@@ -91,6 +119,7 @@ app.on('window-all-closed', async () => {
     }
 });
 
+// IPC обработчики (без изменений, они уже были корректны)
 ipcMain.handle('get-user-data-path', async () => app.getPath('userData'));
 
 ipcMain.handle('db-register-user', async (event, { email, name }) => {
@@ -105,7 +134,7 @@ ipcMain.handle('db-register-user', async (event, { email, name }) => {
             return { success: true, exists: true, message: "Пользователь уже существует." };
         } else {
             await dbConnection.execute('INSERT INTO user_data (email, name, ai_config, categories, schedules) VALUES (?, ?, ?, ?, ?)',
-                [email, name, JSON.stringify({}), JSON.stringify([]), JSON.stringify([])]); // Вставляем пустые данные по умолчанию
+                [email, name, JSON.stringify({}), JSON.stringify([]), JSON.stringify([])]);
             return { success: true, exists: false, message: "Новый пользователь зарегистрирован в БД." };
         }
     } catch (error) {
@@ -128,7 +157,6 @@ ipcMain.handle('db-load-user-all-data', async (event, email) => {
                 success: true,
                 data: {
                     name: ud.name,
-                    // mysql2/promise автоматически парсит JSON, если тип колонки JSON
                     aiConfig: ud.ai_config,
                     categories: ud.categories,
                     schedules: ud.schedules
