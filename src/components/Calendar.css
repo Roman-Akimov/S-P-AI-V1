@@ -652,3 +652,11 @@ legend { /* ... как было ... */ }
     border: none;
     background-color: var(--app-bg-main);
 }
+
+.add-category-form-item .sidebar-form-error {
+    color: var(--app-accent-red);
+    font-size: 0.8rem;
+    padding: 0 5px 5px 5px; /* Отступы для сообщения об ошибке */
+    margin-left: 40px; /* Примерный отступ, чтобы было под инпутом имени */
+    text-align: left;
+}

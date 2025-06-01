@@ -6,6 +6,8 @@ import UserProfile from './components/UserProfile';
 import AiAssistant from './components/AiAssistant';
 import RegistrationPage from './components/RegistrationPage';
 import OnboardingQuestionnairePage from './components/OnboardingQuestionnairePage';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 const IconPlaceholder = ({ name, size = "1em", style = {}, onClick, title, className }) => (
@@ -34,7 +36,6 @@ const IconPlaceholder = ({ name, size = "1em", style = {}, onClick, title, class
         {name === 'Trash' && '🗑️'}
         {name === 'Check' && '✔️'}
         {name === 'Cross' && '❌'}
-        {/* Добавьте другие иконки по мере необходимости */}
     </span>
 );
 
@@ -61,7 +62,7 @@ const INITIAL_AI_CONFIG = {
 };
 
 const fileSystemApi = window.electronFs;
-const dbApi = window.dbApi; // Новый API для БД
+const dbApi = window.dbApi;
 
 if (!fileSystemApi) { console.error("App.js: Electron FS API ('electronFs') is not available."); }
 if (!dbApi) { console.error("App.js: Electron DB API ('dbApi') is not available."); }
@@ -74,7 +75,7 @@ function App() {
     const [schedules, setSchedules] = useState([]);
     const [aiConfig, setAiConfig] = useState(INITIAL_AI_CONFIG);
     const [isLoadingData, setIsLoadingData] = useState(true);
-    const [userCredentials, setUserCredentials] = useState(null); // { name, email }
+    const [userCredentials, setUserCredentials] = useState(null);
     const [isAiConfigLoaded, setIsAiConfigLoaded] = useState(false);
     const [isOnlineMode, setIsOnlineMode] = useState(false);
 
@@ -82,122 +83,137 @@ function App() {
     const [newCategoryNameInput, setNewCategoryNameInput] = useState('');
     const [newCategoryColorInput, setNewCategoryColorInput] = useState(DEFAULT_NEW_CATEGORY_COLOR);
     const newCategoryNameInputRef = useRef(null);
+    const [addCategoryError, setAddCategoryError] = useState('');
+
+    const notifySuccess = (message) => toast.success(message);
+    const notifyError = (message) => toast.error(message);
+    const notifyInfo = (message) => toast.info(message);
+    const notifyWarning = (message) => toast.warn(message);
 
     useEffect(() => {
         const loadInitialData = async () => {
             setIsLoadingData(true);
-            let localCredentials = null;
-            let loadedAiConfigFromSource = null; // Может быть из БД или файла
-            let loadedCategoriesFromSource = null;
-            let loadedSchedulesFromSource = null;
+            let finalAiConfig = null;
+            let finalCategories = null;
+            let finalSchedules = null;
+            let finalCredentials = null;
+            let aiConfigActuallyLoaded = false;
+            let onlineModeActivated = false;
 
             if (fileSystemApi) {
                 try {
                     await fileSystemApi.ensureDataDir();
-                    localCredentials = await fileSystemApi.readFile(USER_CREDENTIALS_FILENAME);
+                    finalCredentials = await fileSystemApi.readFile(USER_CREDENTIALS_FILENAME);
                 } catch (e) { console.error("Error reading local credentials file:", e); }
+            } else {
+                console.warn("FileSystemAPI is not available. Local data persistence will be disabled.");
             }
 
-            if (localCredentials && localCredentials.email && localCredentials.name) {
-                setUserCredentials(localCredentials);
-                console.log("Local credentials loaded:", localCredentials);
-
+            if (finalCredentials && finalCredentials.email && finalCredentials.name) {
                 if (dbApi) {
-                    console.log(`Attempting to load all data from DB for ${localCredentials.email}`);
-                    const dbLoadResult = await dbApi.loadUserAllData(localCredentials.email);
-                    if (dbLoadResult.success && dbLoadResult.data) {
-                        console.log("Successfully loaded data from DB:", dbLoadResult.data);
-                        const { aiConfig: dbAiConfig, categories: dbCategories, schedules: dbSchedules } = dbLoadResult.data;
+                    console.log(`Attempting to load all data from DB for ${finalCredentials.email}`);
+                    try {
+                        const dbLoadResult = await dbApi.loadUserAllData(finalCredentials.email);
+                        if (dbLoadResult.success && dbLoadResult.data) {
+                            console.log("Successfully loaded data from DB:", dbLoadResult.data);
+                            const { aiConfig: dbAiConfig, categories: dbCategories, schedules: dbSchedules } = dbLoadResult.data;
 
-                        if (dbAiConfig && Object.keys(dbAiConfig).length > 0) { // Проверяем, что конфиг не пустой
-                            setAiConfig(prev => ({ ...INITIAL_AI_CONFIG, ...dbAiConfig }));
-                            setIsAiConfigLoaded(true);
-                            loadedAiConfigFromSource = dbAiConfig;
+                            if (dbAiConfig && Object.keys(dbAiConfig).length > 0) {
+                                finalAiConfig = { ...INITIAL_AI_CONFIG, ...dbAiConfig };
+                                aiConfigActuallyLoaded = true;
+                            }
+                            if (dbCategories) {
+                                finalCategories = dbCategories.map(c => ({...c, checked: c.checked !== undefined ? c.checked : true}));
+                            }
+                            if (dbSchedules) {
+                                finalSchedules = dbSchedules;
+                            }
+                            onlineModeActivated = true;
+                        } else {
+                            console.warn("Failed to load data from DB or no data found for user:", dbLoadResult.error);
                         }
-                        if (dbCategories && dbCategories.length > 0) {
-                            setCategories(dbCategories.map(c => ({...c, checked: c.checked !== undefined ? c.checked : true})));
-                            loadedCategoriesFromSource = dbCategories;
-                        }
-                        if (dbSchedules) {
-                            setSchedules(dbSchedules);
-                            loadedSchedulesFromSource = dbSchedules;
-                        }
-                        setIsOnlineMode(true);
-                    } else {
-                        console.warn("Failed to load data from DB or no data found:", dbLoadResult.error);
-                        setIsOnlineMode(false);
+                    } catch (dbError) {
+                        console.error("Critical error during DB load on startup:", dbError);
                     }
+                } else {
+                    console.warn("DB API is not available. Cloud sync will be disabled.");
                 }
             }
 
             if (fileSystemApi) {
-                if (!loadedAiConfigFromSource) {
+                if (!finalAiConfig) {
                     try {
                         const fileAiConfig = await fileSystemApi.readFile(PROFILE_CONFIG_FILENAME);
                         if (fileAiConfig) {
-                            setAiConfig(prev => ({ ...INITIAL_AI_CONFIG, ...fileAiConfig }));
-                            setIsAiConfigLoaded(true);
-                            loadedAiConfigFromSource = fileAiConfig; // Запоминаем, что загрузили из файла
-                        } else if (!isAiConfigLoaded) {
-                            setAiConfig(INITIAL_AI_CONFIG);
-                            setIsAiConfigLoaded(false);
+                            finalAiConfig = { ...INITIAL_AI_CONFIG, ...fileAiConfig };
+                            aiConfigActuallyLoaded = true;
                         }
-                    } catch (e) { console.error("Error reading local AI config:", e); if (!isAiConfigLoaded) setIsAiConfigLoaded(false); }
-                } else if (localCredentials && isOnlineMode && loadedAiConfigFromSource && fileSystemApi) {
-                    // Если загрузили из БД, и данные из БД есть, обновляем локальный файл
-                    console.log("Syncing AI Config from DB to local file.");
-                    await fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, loadedAiConfigFromSource).catch(e => console.error("Error syncing DB AI config to local file:", e));
+                    } catch (e) { console.error("Error reading local AI config:", e); }
+                } else if (finalCredentials && onlineModeActivated && finalAiConfig) {
+                    console.log("Syncing AI Config from DB to local file (initial load).");
+                    await fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, finalAiConfig).catch(e => console.error("Error syncing DB AI config to local file:", e));
                 }
 
-
-                if (!loadedCategoriesFromSource) {
+                if (!finalCategories) {
                     try {
                         const fileCategories = await fileSystemApi.readFile(CATEGORIES_FILENAME);
                         if (fileCategories && Array.isArray(fileCategories)) {
-                            setCategories(fileCategories.map(c => ({...c, checked: c.checked !== undefined ? c.checked : true})));
-                            loadedCategoriesFromSource = fileCategories;
-                        } else { // Если файл пуст или не массив
-                            const initialCatsWithChecked = INITIAL_CATEGORIES.map(c => ({...c, checked: true}));
-                            setCategories(initialCatsWithChecked);
-                            if (fileSystemApi) await fileSystemApi.writeFile(CATEGORIES_FILENAME, initialCatsWithChecked).catch(e => console.error("Error writing initial categories file:", e));
+                            finalCategories = fileCategories.map(c => ({...c, checked: c.checked !== undefined ? c.checked : true}));
                         }
                     } catch (e) { console.error("Error reading local categories:", e); }
-                } else if (localCredentials && isOnlineMode && loadedCategoriesFromSource && fileSystemApi) {
-                    console.log("Syncing Categories from DB to local file.");
-                    await fileSystemApi.writeFile(CATEGORIES_FILENAME, loadedCategoriesFromSource).catch(e => console.error("Error syncing DB categories to local file:", e));
+                } else if (finalCredentials && onlineModeActivated && finalCategories) {
+                    console.log("Syncing Categories from DB to local file (initial load).");
+                    await fileSystemApi.writeFile(CATEGORIES_FILENAME, finalCategories).catch(e => console.error("Error syncing DB categories to local file:", e));
                 }
 
-                if (!loadedSchedulesFromSource) {
+                if (!finalSchedules) {
                     try {
                         const fileSchedules = await fileSystemApi.readFile(SCHEDULES_FILENAME);
-                        setSchedules(fileSchedules || []);
-                        loadedSchedulesFromSource = fileSchedules;
+                        finalSchedules = fileSchedules || [];
                     } catch (e) { console.error("Error reading local schedules:", e); }
-                } else if (localCredentials && isOnlineMode && loadedSchedulesFromSource && fileSystemApi) {
-                    console.log("Syncing Schedules from DB to local file.");
-                    await fileSystemApi.writeFile(SCHEDULES_FILENAME, loadedSchedulesFromSource).catch(e => console.error("Error syncing DB schedules to local file:", e));
+                } else if (finalCredentials && onlineModeActivated && finalSchedules) {
+                    console.log("Syncing Schedules from DB to local file (initial load).");
+                    await fileSystemApi.writeFile(SCHEDULES_FILENAME, finalSchedules).catch(e => console.error("Error syncing DB schedules to local file:", e));
                 }
-            } else {
-                if (!isAiConfigLoaded) setIsAiConfigLoaded(false);
             }
 
-            // Если после всех попыток AI конфиг все еще INITIAL_AI_CONFIG и не был помечен как загруженный
-            // (например, если все файлы и БД были пусты или недоступны)
+            setUserCredentials(finalCredentials);
+            setAiConfig(finalAiConfig || INITIAL_AI_CONFIG);
+            setCategories(finalCategories || INITIAL_CATEGORIES.map(c => ({...c, checked: true})));
+            setSchedules(finalSchedules || []);
+            setIsAiConfigLoaded(aiConfigActuallyLoaded);
+            setIsOnlineMode(onlineModeActivated);
 
+            if (!aiConfigActuallyLoaded && JSON.stringify(finalAiConfig || INITIAL_AI_CONFIG) === JSON.stringify(INITIAL_AI_CONFIG)) {
+                setIsAiConfigLoaded(false);
+            }
 
             setIsLoadingData(false);
         };
-        loadInitialData();
-    }, []); // Пустой массив зависимостей, чтобы выполнился один раз
+
+        loadInitialData().catch(err => {
+            console.error("Critical error during initial data load:", err);
+            notifyError("Критическая ошибка при загрузке начальных данных!");
+            setUserCredentials(null);
+            setAiConfig(INITIAL_AI_CONFIG);
+            setCategories(INITIAL_CATEGORIES.map(c => ({...c, checked: true})));
+            setSchedules([]);
+            setIsAiConfigLoaded(false);
+            setIsOnlineMode(false);
+            setIsLoadingData(false);
+        });
+    }, []);
 
 
     const handleForceSyncWithDB = async () => {
         if (!dbApi || !userCredentials || !userCredentials.email) {
-            alert("Невозможно синхронизировать: API базы данных недоступно или пользователь не вошел в систему.");
+            notifyError("Невозможно синхронизировать: API или учетные данные недоступны.");
             return false;
         }
         console.log("Принудительная синхронизация с БД для:", userCredentials.email);
         setIsLoadingData(true);
+        const toastId = toast.loading("Синхронизация с облаком..."); // Показываем тост загрузки
+        let syncSuccess = false;
         try {
             const result = await dbApi.saveUserAllData({
                 email: userCredentials.email,
@@ -207,8 +223,10 @@ function App() {
                 schedules: schedules
             });
             if (result.success) {
-                alert("Данные успешно синхронизированы с облаком!");
-                if(fileSystemApi) { // Обновляем локальные файлы после успешной синхронизации
+                toast.update(toastId, { render: "Данные успешно синхронизированы!", type: "success", isLoading: false, autoClose: 3000 });
+                setIsOnlineMode(true);
+                syncSuccess = true;
+                if(fileSystemApi) {
                     console.log("Updating local files after successful DB sync.");
                     await Promise.all([
                         fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, aiConfig),
@@ -216,19 +234,19 @@ function App() {
                         fileSystemApi.writeFile(SCHEDULES_FILENAME, schedules)
                     ]).catch(e => console.warn("Не удалось обновить локальные файлы после синхронизации с БД:", e));
                 }
-                return true;
             } else {
-                alert("Ошибка синхронизации с облаком: " + result.error);
-                console.error("Ошибка синхронизации с БД:", result.error);
-                return false;
+                // Важно: обновляем тост и при ошибке, чтобы он исчез
+                toast.update(toastId, { render: "Ошибка синхронизации: " + (result.error || "Неизвестная ошибка"), type: "error", isLoading: false, autoClose: 5000 });
+                setIsOnlineMode(false);
             }
         } catch (error) {
-            alert("Критическая ошибка при синхронизации: " + error.message);
-            console.error("Критическая ошибка при синхронизации с БД:", error);
-            return false;
+            // И здесь тоже обновляем
+            toast.update(toastId, { render: "Критическая ошибка при синхронизации: " + error.message, type: "error", isLoading: false, autoClose: 5000 });
+            setIsOnlineMode(false);
         } finally {
             setIsLoadingData(false);
         }
+        return syncSuccess;
     };
 
     const updateSchedules = useCallback((newSchedulesOrUpdater) => {
@@ -268,6 +286,7 @@ function App() {
                     sch.categoryId === categoryIdToDelete ? { ...sch, categoryId: null } : sch
                 )
             );
+            notifyInfo("Категория удалена.");
         }
     }, []);
 
@@ -275,6 +294,7 @@ function App() {
         setIsAddingCategory(true);
         setNewCategoryNameInput('');
         setNewCategoryColorInput(DEFAULT_NEW_CATEGORY_COLOR);
+        setAddCategoryError('');
     };
 
     useEffect(() => {
@@ -284,9 +304,10 @@ function App() {
     }, [isAddingCategory]);
 
     const handleSaveNewCategory = () => {
+        setAddCategoryError('');
         const trimmedName = newCategoryNameInput.trim();
         if (!trimmedName) {
-            alert("Название категории не может быть пустым.");
+            setAddCategoryError("Название категории не может быть пустым.");
             newCategoryNameInputRef.current?.focus();
             return;
         }
@@ -298,20 +319,22 @@ function App() {
         };
         updateCategories(prev => [...prev, newCategory]);
         setIsAddingCategory(false);
+        notifySuccess(`Категория "${trimmedName}" добавлена!`);
     };
 
     const handleCancelAddNewCategory = () => {
         setIsAddingCategory(false);
+        setAddCategoryError('');
     };
 
     const updateAiConfig = useCallback((newAiConfigOrUpdater) => {
         setAiConfig(prevAiConfig => {
             const updatedConfig = typeof newAiConfigOrUpdater === 'function' ? newAiConfigOrUpdater(prevAiConfig) : newAiConfigOrUpdater;
             let isDifferentFromInitial = false;
-            if (updatedConfig && typeof updatedConfig === 'object') { // Добавил проверку на object
+            if (updatedConfig && typeof updatedConfig === 'object') {
                 for (const key in INITIAL_AI_CONFIG) { if (JSON.stringify(updatedConfig[key]) !== JSON.stringify(INITIAL_AI_CONFIG[key])) { isDifferentFromInitial = true; break; } }
                 for (const key in updatedConfig) { if (!INITIAL_AI_CONFIG.hasOwnProperty(key)) { isDifferentFromInitial = true; break; } }
-            } else if (updatedConfig) { // Если это не объект, но не null/undefined, считаем отличным
+            } else if (updatedConfig) {
                 isDifferentFromInitial = true;
             }
 
@@ -334,82 +357,107 @@ function App() {
 
     useEffect(() => {
         if (isLoadingData || !fileSystemApi) return;
-        console.log("FS: Saving CATEGORIES");
+        // console.log("FS: Saving CATEGORIES");
         fileSystemApi.writeFile(CATEGORIES_FILENAME, categories).catch(e => console.error('App: Failed to save categories to local file:', e));
     }, [categories, isLoadingData, fileSystemApi]);
 
     useEffect(() => {
         if (isLoadingData || !fileSystemApi) return;
-        console.log("FS: Saving SCHEDULES");
+        // console.log("FS: Saving SCHEDULES");
         fileSystemApi.writeFile(SCHEDULES_FILENAME, schedules).catch(e => console.error('App: Failed to save schedules to local file:', e));
     }, [schedules, isLoadingData, fileSystemApi]);
 
     useEffect(() => {
-        if (isLoadingData || !fileSystemApi || !isAiConfigLoaded) { // Сохраняем, только если конфиг был "загружен" (т.е. не дефолтный)
-            if (!isLoadingData && fileSystemApi && !isAiConfigLoaded) {
-                // console.log("FS: AI Config is initial, not saving to local file.");
-            }
+        if (isLoadingData || !fileSystemApi || !isAiConfigLoaded) {
             return;
         }
-        console.log("FS: Saving AI_CONFIG");
+        // console.log("FS: Saving AI_CONFIG");
         fileSystemApi.writeFile(PROFILE_CONFIG_FILENAME, aiConfig).catch(e => console.error('App: Failed to save AI config to local file:', e));
     }, [aiConfig, isLoadingData, isAiConfigLoaded, fileSystemApi]);
 
     const handleRegistration = async (credentials) => {
-        if (!dbApi) { alert("Ошибка: API базы данных недоступно для регистрации."); setIsLoadingData(false); return; }
-        if (!fileSystemApi) { alert("Ошибка: Файловая система недоступна."); setIsLoadingData(false); return; }
+        if (!fileSystemApi) {
+            notifyError("Файловая система недоступна. Регистрация невозможна.");
+            return;
+        }
 
         setIsLoadingData(true);
-        try {
-            console.log("Registering user in DB:", credentials.email);
-            const dbRegResult = await dbApi.registerUser(credentials.email, credentials.name);
-            if (!dbRegResult.success) {
-                alert("Ошибка регистрации в облаке: " + dbRegResult.error);
-                setIsLoadingData(false); return;
-            }
-            console.log("DB Registration/Check result:", dbRegResult.message);
+        let localRegistrationSuccess = false;
+        let currentOnlineMode = false;
+        const toastId = toast.loading("Регистрация...");
 
+        if (dbApi) {
+            try {
+                const dbRegResult = await dbApi.registerUser(credentials.email, credentials.name);
+                if (dbRegResult.success) {
+                    toast.update(toastId, { render: "Успешная проверка/регистрация в облаке.", type: "info", isLoading: true, autoClose: 2000 });
+                    currentOnlineMode = true;
+                } else {
+                    toast.update(toastId, { render: "Не удалось связаться с облаком. Данные будут сохранены локально.", type: "warning", isLoading: true, autoClose: 3000 });
+                }
+            } catch (dbError) {
+                toast.update(toastId, { render: "Ошибка при регистрации в облаке. Данные будут сохранены локально.", type: "error", isLoading: true, autoClose: 3000 });
+            }
+        } else {
+            toast.update(toastId, { render: "Облачная синхронизация недоступна. Данные будут сохранены только локально.", type: "warning", isLoading: true, autoClose: 3000 });
+        }
+
+        try {
             await fileSystemApi.writeFile(USER_CREDENTIALS_FILENAME, credentials);
             setUserCredentials(credentials);
+            localRegistrationSuccess = true;
+        } catch (fsError) {
+            toast.update(toastId, { render: "Критическая ошибка: не удалось сохранить данные регистрации локально!", type: "error", isLoading: false, autoClose: 5000 });
+            setIsLoadingData(false);
+            return;
+        }
 
-            console.log(`Loading data for ${credentials.email} after registration.`);
-            const dbLoadResult = await dbApi.loadUserAllData(credentials.email);
-            if (dbLoadResult.success && dbLoadResult.data) {
-                const { aiConfig: dbAiConfig, categories: dbCategories, schedules: dbSchedules } = dbLoadResult.data;
-                if (dbAiConfig && Object.keys(dbAiConfig).length > 0) {
-                    updateAiConfig(dbAiConfig); // Обновит aiConfig и isAiConfigLoaded
-                } else {
-                    setAiConfig(INITIAL_AI_CONFIG);
-                    setIsAiConfigLoaded(false); // Показываем онбординг
-                }
-                setCategories((dbCategories && dbCategories.length > 0 ? dbCategories : INITIAL_CATEGORIES).map(c => ({...c, checked: c.checked !== undefined ? c.checked : true})));
-                setSchedules(dbSchedules || []);
-                setIsOnlineMode(true);
-            } else {
-                console.warn("No data in DB for new/existing user after registration, proceeding with onboarding.");
-                setAiConfig(INITIAL_AI_CONFIG);
-                setIsAiConfigLoaded(false); // Онбординг
-                const initialCatsWithChecked = INITIAL_CATEGORIES.map(c => ({...c, checked: true}));
-                setCategories(initialCatsWithChecked);
-                setSchedules([]);
-                setIsOnlineMode(false); // Или true, если регистрация успешна, но данных нет
-                // Сохраним начальные/пустые данные в БД, если их там не было
-                if (dbLoadResult.error?.includes("не найдены")) { // Проверяем конкретную ошибку
-                    await dbApi.saveUserAllData({
-                        email: credentials.email, name: credentials.name,
-                        aiConfig: INITIAL_AI_CONFIG, categories: initialCatsWithChecked, schedules: []
-                    });
+        if (localRegistrationSuccess) {
+            let loadedAiConfig = null;
+            let loadedCategories = null;
+            let loadedSchedules = null;
+            let aiConfigActuallyLoadedThisSession = false;
+
+            if (currentOnlineMode && dbApi) {
+                console.log(`Loading data for ${credentials.email} from DB after registration.`);
+                try {
+                    const dbLoadResult = await dbApi.loadUserAllData(credentials.email);
+                    if (dbLoadResult.success && dbLoadResult.data) {
+                        const { aiConfig: dbAiConfig, categories: dbCategories, schedules: dbSchedules } = dbLoadResult.data;
+                        if (dbAiConfig && Object.keys(dbAiConfig).length > 0) {
+                            loadedAiConfig = { ...INITIAL_AI_CONFIG, ...dbAiConfig };
+                            aiConfigActuallyLoadedThisSession = true;
+                        }
+                        loadedCategories = dbCategories;
+                        loadedSchedules = dbSchedules;
+                    } else {
+                        console.warn("No data found in DB for user (after registration call):", dbLoadResult.error);
+                    }
+                } catch (dbLoadErr) {
+                    console.error("Error loading data from DB after registration:", dbLoadErr);
                 }
             }
-        } catch (error) {
-            console.error("App: Failed during registration process", error);
-            alert("Ошибка при регистрации: " + error.message);
-            // Сбрасываем состояние в случае критической ошибки
-            setUserCredentials(null);
-            setIsAiConfigLoaded(false);
-        } finally {
-            setIsLoadingData(false);
+
+            setAiConfig(loadedAiConfig || INITIAL_AI_CONFIG);
+            setCategories((loadedCategories && loadedCategories.length > 0 ? loadedCategories : INITIAL_CATEGORIES).map(c => ({...c, checked: c.checked !== undefined ? c.checked : true})));
+            setSchedules(loadedSchedules || []);
+            setIsAiConfigLoaded(aiConfigActuallyLoadedThisSession);
+            setIsOnlineMode(currentOnlineMode);
+
+            if (currentOnlineMode && !aiConfigActuallyLoadedThisSession && dbApi) {
+                const initialCats = INITIAL_CATEGORIES.map(c => ({...c, checked: true}));
+                const initialDataToSave = {
+                    email: credentials.email, name: credentials.name,
+                    aiConfig: INITIAL_AI_CONFIG, categories: initialCats, schedules: []
+                };
+                console.log("No specific AI config from DB for new user, saving initial data to DB", initialDataToSave);
+                // Это сохранение может быть избыточным, если main.js уже вставил пустые JSON при регистрации
+                // dbApi.saveUserAllData(initialDataToSave).catch(e => console.error("Error saving initial data for new user to DB", e));
+            }
+            toast.dismiss(toastId);
+            notifySuccess("Регистрация завершена!");
         }
+        setIsLoadingData(false);
     };
 
     const handleOnboardingComplete = async (completedAiConfig) => {
@@ -417,27 +465,35 @@ function App() {
         if (userCredentials && userCredentials.email && dbApi) {
             console.log("Onboarding complete, saving AI config to DB for:", userCredentials.email);
             setIsLoadingData(true);
+            const toastId = toast.loading("Сохранение настроек в облако...");
             try {
-                await dbApi.saveUserAllData({
+                const saveResult = await dbApi.saveUserAllData({
                     email: userCredentials.email,
                     name: userCredentials.name,
                     aiConfig: completedAiConfig,
                     categories: categories,
                     schedules: schedules
                 });
-                setIsOnlineMode(true); // После успешного сохранения онбординга
+                if (saveResult.success) {
+                    toast.update(toastId, { render: "Настройки сохранены в облако!", type: "success", isLoading: false, autoClose: 3000 });
+                    setIsOnlineMode(true);
+                } else {
+                    toast.update(toastId, { render: "Не удалось сохранить настройки в облако: " + (saveResult.error || "Неизвестная ошибка"), type: "error", isLoading: false, autoClose: 5000 });
+                }
             } catch(e) {
-                console.error("Failed to save onboarding config to DB", e);
-                alert("Не удалось сохранить начальные настройки в облако. Они сохранены локально.");
+                toast.update(toastId, { render: "Ошибка сохранения настроек в облако.", type: "error", isLoading: false, autoClose: 5000 });
             } finally {
                 setIsLoadingData(false);
             }
+        } else if (userCredentials && userCredentials.email && !dbApi) {
+            notifyInfo("Начальные настройки сохранены локально. Облачная синхронизация недоступна.");
         }
     };
 
     if (isLoadingData) { return <div className="loading-indicator">Загрузка данных...</div>; }
-    if (!fileSystemApi && !dbApi && !isLoadingData) { return (<div className="app-error"><h1>Ошибка приложения</h1><p>Необходимые API не найдены.</p></div>); }
-
+    if (!fileSystemApi && !isLoadingData) {
+        return (<div className="app-error"><h1>Критическая ошибка</h1><p>Локальная файловая система недоступна. Работа приложения невозможна.</p></div>);
+    }
     if (!userCredentials) { return <RegistrationPage onRegister={handleRegistration} />; }
     if (!isAiConfigLoaded) { return (<OnboardingQuestionnairePage initialConfig={aiConfig} onComplete={handleOnboardingComplete} userName={userCredentials.name} />); }
 
@@ -445,10 +501,22 @@ function App() {
 
     return (
         <Router>
+            <ToastContainer
+                position="bottom-right"
+                autoClose={4000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+            />
             <div className="app-container">
                 <nav className="app-sidebar">
                     <div className="sidebar-brand">
-                        <span className="sidebar-brand-icon"></span> {/* Убедитесь, что есть CSS для этого */}
+                        <span className="sidebar-brand-icon"></span>
                         Aimly
                     </div>
                     <ul className="sidebar-main-nav">
@@ -473,15 +541,16 @@ function App() {
                                 </a>
                                 <IconPlaceholder
                                     name="Trash"
-                                    className="delete-category-icon"
+                                    className="delete-category-icon action-icon"
                                     onClick={() => handleDeleteCategory(category.id)}
                                     title="Удалить категорию"
-                                    style={{ marginLeft: 'auto', padding: '0 5px' }}
+                                    style={{ marginLeft: 'auto', padding: '0 5px', color: 'var(--app-text-secondary)' }}
                                 />
                             </li>
                         ))}
                         {isAddingCategory ? (
                             <li className="add-category-form-item">
+                                {addCategoryError && <p className="form-error-message sidebar-form-error">{addCategoryError}</p>}
                                 <div className="add-category-input-group">
                                     <input
                                         type="color"
